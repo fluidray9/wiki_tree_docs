@@ -137,8 +137,11 @@ MAX_SECTIONS = 50          # Maximum sections to process (fall back to truncatio
 
 
 def get_file_sizeKB(path: Path) -> float:
-    """Get file size in KB."""
-    return path.stat().st_size / 1024
+    """Get file size in KB. Returns 0 if file doesn't exist."""
+    try:
+        return path.stat().st_size / 1024
+    except (FileNotFoundError, OSError):
+        return 0.0
 
 
 def split_markdown_by_headings(content: str) -> list[dict]:

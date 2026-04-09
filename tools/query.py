@@ -127,7 +127,19 @@ Return a JSON array of relative file paths (as listed in the index), e.g. ["sour
         try:
             paths = call_claude(selection_prompt, selection_schema, kb_path.name)
             if isinstance(paths, list):
-                relevant_pages = [WIKI_DIR / p for p in paths if (WIKI_DIR / p).exists()]
+                validated = []
+                for p in paths:
+                    if not isinstance(p, str):
+                        continue
+                    # Security: validate path stays within WIKI_DIR
+                    try:
+                        full_path = (WIKI_DIR / p).resolve()
+                        full_path.relative_to(WIKI_DIR.resolve())
+                        if full_path.exists() and full_path.is_file():
+                            validated.append(full_path)
+                    except (ValueError, OSError):
+                        continue
+                relevant_pages = validated
         except (json.JSONDecodeError, TypeError):
             pass
 

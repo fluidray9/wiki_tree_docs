@@ -138,11 +138,22 @@ def find_tree_issues(kb_path: Path) -> list[str]:
         node_type = node.get("type", "topic")
         children = node.get("children", [])
 
+        if not isinstance(children, list):
+            children = []
+
         if node_type == "leaf":
-            # Check if source file exists
-            source_path = kb_path / node.get("name", "")
-            if not source_path.exists():
-                issues.append(f"Leaf node references non-existent file: {node.get('name')}")
+            # Check if source file exists (with path traversal protection)
+            file_name = node.get("name", "")
+            if file_name:
+                source_path = kb_path / file_name
+                try:
+                    source_path_resolved = source_path.resolve()
+                    kb_path_resolved = kb_path.resolve()
+                    source_path_resolved.relative_to(kb_path_resolved)
+                    if not source_path.exists():
+                        issues.append(f"Leaf node references non-existent file: {file_name}")
+                except (ValueError, OSError):
+                    issues.append(f"Leaf node has invalid path: {file_name}")
         elif node_type == "topic":
             # Check for isolated topic nodes
             if not children and path != "root":

@@ -129,9 +129,18 @@ def find_relevant_leaves(tree_data: dict, query: str, kb_path: Path) -> list[dic
         if node.get("type") == "leaf":
             s = score_node(node)
             if s > 0:
-                source_path = kb_path / node.get("name", "")
-                if source_path.exists():
-                    results.append({"node": node, "score": s})
+                name = node.get("name", "")
+                if name:
+                    source_path = kb_path / name
+                    # Security: ensure path stays within kb_path (prevent path traversal)
+                    try:
+                        source_path = source_path.resolve()
+                        kb_path_resolved = kb_path.resolve()
+                        if source_path.exists() and source_path.is_file() and \
+                           source_path.relative_to(kb_path_resolved):
+                            results.append({"node": node, "score": s})
+                    except (ValueError, OSError):
+                        pass
         for child in node.get("children", []):
             traverse(child)
 
@@ -142,15 +151,29 @@ def find_relevant_leaves(tree_data: dict, query: str, kb_path: Path) -> list[dic
 
 def read_fragment(source_path: Path, lines: str) -> str:
     """Read a specific line range from a file. lines format: 'start-end' or 'start'."""
-    if '-' in lines:
-        start, end = lines.split('-')
-        start = int(start.strip())
-        end = int(end.strip())
-    else:
-        start = int(lines.strip())
-        end = start
-    content = source_path.read_text(encoding="utf-8")
+    try:
+        if '-' in lines:
+            start_str, end_str = lines.split('-', 1)
+            start = int(start_str.strip())
+            end = int(end_str.strip())
+        else:
+            start = int(lines.strip())
+            end = start
+        if start <= 0 or end <= 0 or start > end:
+            return ""
+    except (ValueError, OverflowError):
+        return ""
+
+    try:
+        content = source_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
     file_lines = content.split('\n')
+    # Clamp end to file length
+    end = min(end, len(file_lines))
+    if start > len(file_lines):
+        return ""
     return '\n'.join(file_lines[start - 1:end])
 
 
@@ -193,9 +216,17 @@ def tree_query(question: str, kb_path: Path, wiki_dir: Path, tree_file: Path, sa
     for i, match in enumerate(matches, 1):
         node = match["node"]
         source_name = node.get("name", "")
+        if not source_name:
+            continue
         source_path = kb_path / source_name
-
-        if not source_path.exists():
+        # Security: ensure path stays within kb_path
+        try:
+            source_path = source_path.resolve()
+            kb_path_resolved = kb_path.resolve()
+            source_path.relative_to(kb_path_resolved)
+        except (ValueError, OSError):
+            continue
+        if not source_path.exists() or not source_path.is_file():
             continue
 
         sections = node.get("sections", [])

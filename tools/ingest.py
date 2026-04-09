@@ -345,7 +345,7 @@ def update_tree_index(tree_node: dict, kb_path: Path, raw_path: str | None = Non
                 found = child
                 break
         if found:
-            current_level = found["children"]
+            current_level = found.get("children", [])
         else:
             # Create new topic node
             new_topic = {
@@ -607,7 +607,10 @@ Return JSON with: title, slug, source_page, index_entry, overview_update, entity
             sys.exit(1)
 
     # Write source page
-    slug = data["slug"]
+    slug = data.get("slug", "")
+    # Validate slug: only allow alphanumeric, underscore, hyphen
+    if not slug or not re.match(r'^[\w-]+$', slug):
+        slug = f"source_{hash(data.get('source_page', '')) % 1000000:06d}"
     write_file(WIKI_DIR / "sources" / f"{slug}.md", data["source_page"])
 
     # Write entity pages (merge with existing if present)

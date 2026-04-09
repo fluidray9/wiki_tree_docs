@@ -1,4 +1,4 @@
-# LLM Tree Index Agent — Schema & Workflow Instructions
+# Wiki Tree Docs — Schema & Workflow Instructions
 
 A multi-knowledge-base skill for AI coding agents. Each knowledge base has its own source documents, wiki index, and tree index. No API key or Python scripts needed — just open this repo in Claude Code.
 
@@ -33,6 +33,7 @@ For Claude Code usage, no API key is needed — the agent handles it natively.
 | `/tree-init` | `init my_kb --alias "My KB"` |
 | `/tree-list` | `list all knowledge bases` |
 | `/tree-use` | `use my_kb` |
+| `/tree-delete` | `delete my_kb` |
 | `/tree-ingest` | `ingest raw/my-article.md --kb my_kb` |
 | `/tree-query` | `query the tree about: what are the main themes? --kb my_kb` |
 | `/wiki-query` | `query the wiki about: how does X work? --kb my_kb` |
@@ -48,6 +49,8 @@ All scripts run from repo root. Use `--kb <name>` to specify the knowledge base.
 | Script | Description |
 |--------|-------------|
 | `python tools/init.py <name> --alias "..."` | Create a new knowledge base |
+| `python tools/delete.py <name>` | Delete a knowledge base (asks for confirmation) |
+| `python tools/delete.py <name> --force` | Delete without confirmation |
 | `python tools/list.py` | List all knowledge bases |
 | `python tools/use.py <name>` | Set default knowledge base |
 | `python tools/use.py --show` | Show current default |
@@ -154,6 +157,16 @@ Steps:
 2. Update `meta.json`'s `default` field to `<name>`
 
 After this, commands can omit `--kb` and will use this default.
+
+### `/tree-delete <name>`
+
+Deletes a knowledge base and cleans up `meta.json` references.
+
+Steps:
+1. Verify `knowledge_bases/<name>/` exists
+2. Delete the entire `knowledge_bases/<name>/` directory
+3. Remove `<name>` from `meta.json`'s `alias_map`
+4. If the deleted KB was the default, set `default` to another KB or `null`
 
 ---
 

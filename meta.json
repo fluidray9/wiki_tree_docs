@@ -1,8 +1,10 @@
 {
   "alias_map": {
     "ai_research": "",
-    "test_kb": "Test Knowledge Base",
-    "brand_new_kb": "Brand New"
+    "test_kb": {
+      "alias": "Test Knowledge Base",
+      "description": "This knowledge base contains test documents and research methodology notes, primarily used for workflow validation and study design documentation. It includes three sources covering testing papers and structured approaches to conducting research. Note that two sources share the same title \"Test Paper,\" so verifying whether they are duplicates or intentional separate entries may be worthwhile."
+    }
   },
   "default": "ai_research"
 }

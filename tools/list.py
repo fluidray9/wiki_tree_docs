@@ -6,8 +6,12 @@ Usage:
     python tools/list.py
 """
 
+import sys
 import json
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from utils import read_json
 
 REPO_ROOT = Path(__file__).parent.parent
 META_FILE = REPO_ROOT / "meta.json"
@@ -15,11 +19,11 @@ KB_DIR = REPO_ROOT / "knowledge_bases"
 
 
 def list_kb():
-    if not META_FILE.exists():
+    meta = read_json(META_FILE, {})
+    if not meta:
         print("No knowledge bases found.")
         return
 
-    meta = json.loads(META_FILE.read_text())
     alias_map = meta.get("alias_map", {})
     default = meta.get("default")
 
@@ -40,12 +44,15 @@ def list_kb():
         marker = ""
         if name == default:
             marker = " (default)"
-        # Support both old format (string) and new format (object)
+        # Support both old format (string) and new format (object), handle None
         if isinstance(alias, dict):
-            alias_text = alias.get("alias", "")
-            desc = alias.get("description", "")
-        else:
+            alias_text = alias.get("alias", "") or ""
+            desc = alias.get("description", "") or ""
+        elif isinstance(alias, str):
             alias_text = alias
+            desc = ""
+        else:
+            alias_text = ""
             desc = ""
         if alias_text:
             print(f"  - {name}{marker} — {alias_text}")

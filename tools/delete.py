@@ -16,6 +16,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).parent.parent
 META_FILE = REPO_ROOT / "meta.json"
 
+sys.path.insert(0, str(Path(__file__).parent))
+from utils import read_json
+
 
 def read_file(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
@@ -29,7 +32,7 @@ def resolve_kb_name(kb_name: str | None) -> str:
     if kb_name is not None:
         return kb_name
     if META_FILE.exists():
-        meta = json.loads(META_FILE.read_text())
+        meta = read_json(META_FILE, {})
         kb_name = meta.get("default")
     if not kb_name:
         print("Error: no knowledge base specified and no default set.")
@@ -44,7 +47,7 @@ def delete_kb(name: str, force: bool = False):
     if not kb_path.exists():
         # Folder already gone — just clean up meta.json orphaned entry
         if META_FILE.exists():
-            meta = json.loads(META_FILE.read_text())
+            meta = read_json(META_FILE, {})
             changed = False
             if name in meta.get("alias_map", {}):
                 del meta["alias_map"][name]
@@ -76,7 +79,7 @@ def delete_kb(name: str, force: bool = False):
 
     # Update meta.json
     if META_FILE.exists():
-        meta = json.loads(META_FILE.read_text())
+        meta = read_json(META_FILE, {})
 
         # Remove from alias_map
         if name in meta.get("alias_map", {}):

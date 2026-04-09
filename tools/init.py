@@ -12,10 +12,14 @@ Examples:
 
 import json
 import argparse
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
 META_FILE = REPO_ROOT / "meta.json"
+
+sys.path.insert(0, str(Path(__file__).parent))
+from utils import read_json
 
 
 def read_file(path: Path) -> str:
@@ -67,9 +71,7 @@ def init_kb(name: str, alias: str = ""):
         }, indent=2, ensure_ascii=False))
 
     # Update meta.json
-    meta = {}
-    if META_FILE.exists():
-        meta = json.loads(read_file(META_FILE))
+    meta = read_json(META_FILE, {}) or {}
 
     alias_map = meta.get("alias_map", {})
     # Support both old format (string) and new format (object)

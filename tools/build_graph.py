@@ -21,6 +21,7 @@ import re
 import json
 import hashlib
 import os
+import html
 import argparse
 import webbrowser
 from pathlib import Path
@@ -290,8 +291,16 @@ COMMUNITY_COLORS = [
 
 def render_html(nodes: list[dict], edges: list[dict]) -> str:
     """Generate self-contained vis.js HTML."""
-    nodes_json = json.dumps(nodes, indent=2)
-    edges_json = json.dumps(edges, indent=2)
+    # Escape labels to prevent XSS (node labels come from user wiki content)
+    safe_nodes = []
+    for n in nodes:
+        safe_n = dict(n)
+        safe_n["label"] = html.escape(n.get("label", ""))
+        safe_nodes.append(safe_n)
+    nodes_json = json.dumps(safe_nodes)
+    edges_json = json.dumps(edges)
+    # Prevent </script> injection in JSON data
+    nodes_json = nodes_json.replace("</script", "<\\/script")
 
     legend_items = "".join(
         f'<span style="background:{color};padding:3px 8px;margin:2px;border-radius:3px;font-size:12px">{t}</span>'

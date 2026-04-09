@@ -67,7 +67,7 @@ def call_claude(prompt: str, output_schema: dict, kb_name: str | None = None) ->
             return _json.loads(match.group())
         raise ValueError(f"No structured output in claude response: {raw_result[:200]}")
     except (_json.JSONDecodeError, ValueError) as e:
-        raise RuntimeError(f"Failed to parse claaude JSON output: {e}\nRaw: {result.stdout[:500]}")
+        raise RuntimeError(f"Failed to parse claude JSON output: {e}\nRaw: {result.stdout[:500]}")
 
 
 def call_claude_text(prompt: str, kb_name: str | None = None) -> str:
@@ -108,6 +108,16 @@ def call_claude_text(prompt: str, kb_name: str | None = None) -> str:
 def read_file(path: Path) -> str:
     """Read a text file, returning empty string if it doesn't exist."""
     return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def read_json(path: Path, default=None) -> dict | list | None:
+    """Read and parse JSON file, returning default if file doesn't exist or is invalid."""
+    if not path.exists():
+        return default if default is not None else None
+    try:
+        return _json.loads(path.read_text(encoding="utf-8"))
+    except (_json.JSONDecodeError, IOError):
+        return default if default is not None else None
 
 
 def write_file(path: Path, content: str):

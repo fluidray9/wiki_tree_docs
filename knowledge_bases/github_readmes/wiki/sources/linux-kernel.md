@@ -1,1 +1,0 @@
-/home/fluidray/companywork/wiki_tree_docs/knowledge_bases/github_readmes/wiki/sources/linux-kernel.md

@@ -13,13 +13,12 @@ venv/
 .venv/
 env/
 
-# Test knowledge bases (generated/test content)
-knowledge_bases/test_kb/
-knowledge_bases/test_v2/
-test_source.md
-test_readmes/
+# All knowledge bases (local-only, never commit)
+knowledge_bases/
 
 # Test files at root
+test_source.md
+test_readmes/
 *.test.md
 *.tmp
 

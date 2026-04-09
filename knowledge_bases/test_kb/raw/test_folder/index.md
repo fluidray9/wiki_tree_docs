@@ -1,10 +1,10 @@
 # Test Paper
 
-This is a test paper with an image.
+This is a test with image.
 
-![figure 1](./figures/fig1.png)
+![fig1](./figures/fig1.png)
 
 ## Section 1
 
-Some content here.
+Content.
 

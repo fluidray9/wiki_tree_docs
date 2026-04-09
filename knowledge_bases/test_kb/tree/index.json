@@ -27,6 +27,22 @@
               "summary": "Section 1 containing some placeholder content"
             }
           ]
+        },
+        {
+          "name": "raw/test_folder/index.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Document Start",
+              "lines": "1-3",
+              "summary": "Document header and title with inline image reference to fig1.png"
+            },
+            {
+              "heading": "§ Section 1",
+              "lines": "5-7",
+              "summary": "First section containing basic placeholder content"
+            }
+          ]
         }
       ]
     }

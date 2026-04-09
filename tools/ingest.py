@@ -163,7 +163,7 @@ def build_wiki_context() -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def update_tree_index(tree_node: dict, kb_path: Path):
+def update_tree_index(tree_node: dict, kb_path: Path, raw_path: str | None = None):
     """Update tree/index.json with new tree nodes. Idempotent: skips if leaf already exists."""
     tree_file = kb_path / "tree" / "index.json"
 
@@ -178,7 +178,8 @@ def update_tree_index(tree_node: dict, kb_path: Path):
     topic_path = tree_node.get("topic_path", [])
     sections = tree_node.get("sections", [])
     slug = tree_node.get("slug", "")
-    raw_path = f"raw/{slug}.md" if slug else f"raw/{kb_path.name}.md"
+    if raw_path is None:
+        raw_path = f"raw/{slug}.md" if slug else f"raw/{kb_path.name}.md"
 
     # Navigate or create the topic path
     current_level = tree_data["children"]
@@ -284,7 +285,8 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
     today = date.today().isoformat()
 
     # --- Determine if source is a file or directory ---
-    if source.is_dir():
+    source_is_dir = source.is_dir()
+    if source_is_dir:
         # Directory: copy entire tree, find main .md file
         main_md = _find_main_md(source)
         if not main_md:
@@ -296,6 +298,8 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
         manifest_key = source.name
         slug = source.name
         display_name = f"{source.name}/ (folder)"
+        # Actual raw path is raw/{folder_name}/index.md
+        main_md_rel = f"raw/{source.name}/{main_md.name}"
     else:
         # Single file
         main_md = source
@@ -304,6 +308,7 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
         manifest_key = source.name
         slug = source.stem
         display_name = source.name
+        main_md_rel = f"raw/{source.name}"
 
     # Idempotency check — skip if this exact source was already ingested
     manifest = get_manifest(kb_path)
@@ -429,7 +434,9 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
     # Update tree index
     tree_node = data.get("tree_node")
     if tree_node:
-        update_tree_index(tree_node, kb_path)
+        # For folder ingestion, pass the correct raw_path (not derived from slug)
+        actual_raw_path = main_md_rel if source_is_dir else None
+        update_tree_index(tree_node, kb_path, raw_path=actual_raw_path)
 
     # Record successful ingestion for idempotency
     mark_ingested(kb_path, manifest_key, source_hash, slug, data["title"])

@@ -20,7 +20,7 @@ import argparse
 from pathlib import Path
 from datetime import date
 
-from utils import call_claude_text
+from utils import call_claude_text, read_json
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
@@ -173,7 +173,7 @@ def tree_query(question: str, kb_path: Path, wiki_dir: Path, tree_file: Path, sa
         print("Tree index is empty. Ingest some sources first with: python tools/ingest.py <source>")
         sys.exit(1)
 
-    tree_data = json.loads(tree_file.read_text())
+    tree_data = read_json(tree_file, {"name": "root", "children": []})
 
     # Step 2: Find relevant leaves
     print(f"  searching tree index...")

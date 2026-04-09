@@ -8,6 +8,10 @@
     "github_readmes": {
       "alias": "GitHub README测试",
       "description": ""
+    },
+    "test_optimized": {
+      "alias": "优化测试",
+      "description": ""
     }
   },
   "default": "ai_research"

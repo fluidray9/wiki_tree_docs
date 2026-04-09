@@ -35,12 +35,12 @@ META_FILE = REPO_ROOT / "meta.json"
 
 # Inline format guide for ingest (replaces CLAUDE.md to reduce prompt size)
 INGEST_FORMAT = """
-## Wiki Structure
-- wiki/sources/<slug>.md: 源文档摘要页
-- wiki/entities/<Name>.md: 实体页（人/公司/项目/产品）
-- wiki/concepts/<Name>.md: 概念页（思想/框架/方法）
+## Wiki Structure (paths relative to wiki/ directory)
+- sources/<slug>.md: 源文档摘要页
+- entities/<Name>.md: 实体页（人/公司/项目/产品）
+- concepts/<Name>.md: 概念页（思想/框架/方法）
 
-## Source Page Format (wiki/sources/<slug>.md)
+## Source Page Format (sources/<slug>.md)
 ---
 title: "文档标题"
 type: source
@@ -146,7 +146,10 @@ def get_manifest(kb_path: Path) -> dict:
     """Load or initialize the ingest manifest."""
     manifest_file = kb_path / "wiki" / ".ingest-manifest.json"
     if manifest_file.exists():
-        return json.loads(manifest_file.read_text())
+        try:
+            return json.loads(manifest_file.read_text())
+        except json.JSONDecodeError:
+            return {}
     return {}
 
 

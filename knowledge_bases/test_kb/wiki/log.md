@@ -1,3 +1,7 @@
+## [2026-04-09] tree_query | test
+
+Tree query answered from 2 source sections.
+
 ## [2026-04-09] ingest | Research Survey
 
 Added source from survey_test.md. 56,000-line test document: 9-section academic survey block repeated ~1,931 times. Sections: Abstract, Introduction, Related Work, Methodology, Experimental Setup, Results, Discussion, Conclusion, References. All content is placeholder text. No image references. Research-Survey topic added as new top-level node in tree.

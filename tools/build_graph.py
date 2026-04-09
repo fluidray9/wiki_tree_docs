@@ -21,6 +21,7 @@ import re
 import json
 import hashlib
 import os
+import sys
 import html
 import argparse
 import webbrowser

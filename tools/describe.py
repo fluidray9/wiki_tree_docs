@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).parent.parent
 META_FILE = REPO_ROOT / "meta.json"
 
 sys.path.insert(0, str(Path(__file__).parent))
-from utils import call_claude_text
+from utils import call_claude_text, read_json
 
 
 def read_file(path: Path) -> str:
@@ -32,10 +32,7 @@ def write_file(path: Path, content: str):
 
 
 def resolve_kb(kb_name: str | None) -> tuple[Path, Path, Path]:
-    if META_FILE.exists():
-        meta = json.loads(META_FILE.read_text())
-    else:
-        meta = {}
+    meta = read_json(META_FILE, {})
 
     if kb_name is None:
         kb_name = meta.get("default")
@@ -115,9 +112,7 @@ Keep it to 2-3 sentences. Start directly with the description, no prefix."""
 
 def update_meta_description(kb_name: str, description: str):
     """Update the description in meta.json for this knowledge base."""
-    meta = {}
-    if META_FILE.exists():
-        meta = json.loads(META_FILE.read_text())
+    meta = read_json(META_FILE, {})
 
     alias_map = meta.get("alias_map", {})
 

@@ -1,170 +1,68 @@
-# Ingest Sub-Skill
+# Ingest Skill
 
-Ingest a source document into a knowledge base, generating both wiki index and tree index simultaneously.
+Ingest a source document into a knowledge base using the Python tool. Falls back to manual execution if the script fails.
 
 ## Trigger
 
 When user says `/tree-ingest <path> --kb <name>` or "ingest <path> into <name>"
 
-## Prerequisites
-
-1. Verify `knowledge_bases/<name>/` exists (fail if not)
-2. Verify source file at `<path>` exists (fail if not)
-3. Read `meta.json` to confirm knowledge base is valid
-
 ## Workflow
 
-### Step 1: Read Source Document
+### Step 1: Try Script First
 
-Use Read tool to read the full source document. Note the file path and name.
+Run the ingest script:
 
-### Step 2: Read Current Context
-
-- Read `knowledge_bases/<name>/wiki/index.md`
-- Read `knowledge_bases/<name>/wiki/overview.md`
-- Read `knowledge_bases/<name>/tree/index.json`
-
-### Step 3: Generate Wiki Index
-
-Create/update the following within `knowledge_bases/<name>/wiki/`:
-
-#### Source Page (wiki/sources/<slug>.md)
-
-```markdown
----
-title: "<Document Title>"
-type: source
-tags: []
-date: YYYY-MM-DD
-source_file: <relative path from raw/>
----
-
-## Summary
-2-4 sentence summary of the document.
-
-## Key Claims
-- Claim 1
-- Claim 2
-
-## Key Quotes
-> "Quote here" — context
-
-## Connections
-- [[EntityName]] — how they relate
-- [[ConceptName]] — how it connects
-
-## Contradictions
-- Contradicts [[OtherPage]] on: ... (if any)
+```bash
+python tools/ingest.py <source> --kb <name>
 ```
 
-#### Entity Pages (wiki/entities/)
-
-For each person, company, project, or product mentioned:
-- Create `wiki/entities/<Name>.md` with type `entity`
-- Link from source page via `[[EntityName]]`
-
-#### Concept Pages (wiki/concepts/)
-
-For each idea, framework, method, or theory:
-- Create `wiki/concepts/<ConceptName>.md` with type `concept`
-- Link from source page via `[[ConceptName]]`
-
-#### Update Index (wiki/index.md)
-
-Add entry under Sources section:
-```
-- [Title](sources/slug.md) — one-line summary
+Example:
+```bash
+python tools/ingest.py raw/papers/rag-survey.md --kb ai_research
 ```
 
-#### Update Overview (wiki/overview.md)
+If the script succeeds, it will:
+- Copy the source to `knowledge_bases/<name>/raw/`
+- Create `wiki/sources/<slug>.md`
+- Create/Update entity pages in `wiki/entities/`
+- Create/Update concept pages in `wiki/concepts/`
+- Update `wiki/index.md`, `wiki/overview.md`, `wiki/log.md`
+- Update `tree/index.json` with new tree nodes
 
-Revise to incorporate new information. If this is the first source, create the initial overview.
+Report the result to the user. Done.
 
-#### Log (wiki/log.md)
+### Step 2: Fallback — Manual Execution
 
-Append:
-```
-## [YYYY-MM-DD] ingest | <Title>
-```
+If the script fails (API error, network issue, etc.), execute manually:
 
-### Step 4: Generate Tree Index (Simultaneously)
+1. Read `knowledge_bases/<name>/wiki/index.md`
+2. Read `knowledge_bases/<name>/wiki/overview.md`
+3. Read `knowledge_bases/<name>/tree/index.json`
+4. Read the full source document
 
-The tree index is generated at the same time as wiki, not after.
+Generate wiki content:
+- Write `wiki/sources/<slug>.md`
+- Write entity pages to `wiki/entities/`
+- Write concept pages to `wiki/concepts/`
+- Update `wiki/index.md`
+- Update `wiki/overview.md`
+- Append to `wiki/log.md`
 
-#### Analyze Document Structure
+Generate tree index:
+- Analyze document sections (heading, line range, summary)
+- Classify into tree nodes (match by keywords or create new topic)
+- Merge into `tree/index.json`
 
-1. Parse markdown sections (lines starting with `## `)
-2. For each major section:
-   - Extract heading text (remove `## ` prefix)
-   - Determine line range (start line to line before next `## `)
-   - Generate a 1-2 sentence summary of the section content
-3. Identify the document's main topic and related keywords
+Report any contradictions detected.
 
-#### Classify Into Tree
+## Arguments
 
-1. Compare document topics/keywords against existing tree nodes
-2. If a matching topic node exists:
-   - Add document as a `leaf` node under the matching topic's children
-3. If no match:
-   - Create a new topic node (may be top-level or under existing relevant parent)
-   - Add document as a `leaf` under the new topic
-
-#### Update tree/index.json
-
-Merge new nodes into existing tree. Do NOT rebuild existing structure.
-
-Leaf node format:
-```json
-{
-  "name": "<relative path from knowledge_base root, e.g. raw/file.md>",
-  "type": "leaf",
-  "sections": [
-    {
-      "heading": "§ <Section Title>",
-      "lines": "<start>-<end>",
-      "summary": "<1-2 sentence summary>"
-    }
-  ]
-}
-```
-
-Topic node format:
-```json
-{
-  "name": "<TopicName>",
-  "description": "<topic description>",
-  "keywords": ["keyword1", "keyword2"],
-  "type": "topic",
-  "children": []
-}
-```
-
-### Step 5: Verify and Report
-
-After ingest completes:
-- Confirm wiki/source page created
-- Confirm tree nodes added
-- Report any contradictions flagged
-- Ask if user wants to add more documents
+- `<source>`: Path to the source document (can be relative to repo root or absolute)
+- `--kb <name>`: Knowledge base name (required; if omitted and default is set, uses default)
 
 ## Error Handling
 
-- If source file doesn't exist: "Source file not found: <path>"
-- If knowledge base doesn't exist: "Knowledge base not found: <name>. Use /tree-init <name> to create it first."
-- If source already ingested (by filename): Update existing entries rather than creating duplicates
-
-## Example
-
-```
-User: /tree-ingest raw/papers/rag-survey.md --kb ai_research
-
-Agent:
-1. Reads raw/papers/rag-survey.md
-2. Creates wiki/sources/rag-survey.md
-3. Extracts entities (e.g., Meta AI, Google) → wiki/entities/
-4. Extracts concepts (e.g., RAG, RLHF) → wiki/concepts/
-5. Updates wiki/index.md, wiki/overview.md, wiki/log.md
-6. Analyzes document sections and topics
-7. Adds leaf node to tree under AI/LLM/RAG/ (or creates RAG node)
-8. Reports completion
-```
+- Script fails → Try manual execution
+- Source file not found → Report error
+- Knowledge base not found → Report error
+- API error → Fallback to manual

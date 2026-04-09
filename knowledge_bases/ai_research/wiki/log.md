@@ -1,3 +1,7 @@
+## [2026-04-09] tree_query | What is RAG?
+
+Tree query answered from 2 source sections.
+
 ## [2026-04-09] query | What is RAG?
 
 Synthesized answer from 1 pages.

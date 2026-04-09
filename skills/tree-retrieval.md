@@ -1,6 +1,6 @@
 # Tree Retrieval Skill
 
-Query the tree index for a knowledge base to get precise line-level citations. **Note: No script available yet — uses manual execution only.**
+Query the tree index for a knowledge base using the Python tool. Falls back to manual execution if the script fails.
 
 ## Trigger
 
@@ -8,49 +8,45 @@ When user says `/tree-query "<question>" --kb <name>` or "query the tree about <
 
 ## Workflow
 
-### Step 1: Resolve Knowledge Base
+### Step 1: Try Script First
 
-1. If `--kb <name>` provided → use `<name>`
-2. Else if `meta.json`'s `default` is not null → use `default`
-3. Else → fail with: "No knowledge base specified and no default set. Use --kb <name> to specify."
+Run the tree query script:
 
-### Step 2: Read Tree Index
+```bash
+python tools/tree_query.py "<question>" --kb <name> [--save [path]]
+```
 
-Read `knowledge_bases/<name>/tree/index.json` to understand the tree structure.
+Examples:
+```bash
+python tools/tree_query.py "What is RAG?" --kb ai_research
+python tools/tree_query.py "How do transformers work?" --kb ai_research --save
+```
 
-### Step 3: Match Query to Tree Nodes
+Flags:
+- `--kb <name>`: Knowledge base name (required)
+- `--save [path]`: Save answer to wiki (prompts for filename if path omitted)
 
-1. Parse query to extract keywords
-2. DFS traverse the tree, matching against:
-   - Node `keywords` array
-   - Node `description`
-   - Leaf node `sections[].summary` (most important for retrieval)
-3. Collect all matching leaf nodes (source documents)
-4. For each matching leaf, note the relevant sections
+If the script succeeds, it will:
+- Search the tree index for relevant leaf nodes (matching keywords, description, and section summaries)
+- Read the corresponding line ranges from source files
+- Synthesize an answer using Claude with precise line-level citations
+- Output in format: `raw/<filepath> § <heading> 行 <start>-<end> > "<quoted text>"`
+- Optionally save to `wiki/syntheses/`
 
-**Scoring:**
-- Exact keyword match in `keywords`: +3
-- Keyword match in `description`: +2
-- Query term in section `summary`: +2 per match
-- Multiple matches in same section: +1 bonus
+Done.
 
-### Step 4: Read Source Document Fragments
+### Step 2: Fallback — Manual Execution
 
-For each matching leaf node:
-1. Construct the full path: `knowledge_bases/<name>/<leaf.name>`
-2. Use the section's `lines` field to read only that portion
-3. Extract the exact quoted text from that range
+If the script fails (API error, network issue, etc.), execute manually:
 
-**Line range reading:**
-- offset: start line number
-- limit: end line number - start line number + 1
+1. Resolve knowledge base name
+2. Read `knowledge_bases/<name>/tree/index.json`
+3. Match query keywords against node `keywords` and `sections[].summary` using DFS
+4. Identify relevant leaf nodes
+5. Read source document fragments using `sections[].lines` for precise line ranges
+6. Generate answer with inline citations
 
-Example: To read lines 45-120:
-- offset: 45
-- limit: 76
-
-### Step 5: Generate Answer with Citations
-
+Output format:
 ```
 回答：<answer based on quoted fragments>
 
@@ -61,39 +57,19 @@ Example: To read lines 45-120:
 [2] ...
 ```
 
-Format rules:
-- Use `§ ` prefix for section heading (e.g., `§ Overview`, `§ 概述`)
-- Line numbers from the `lines` field (e.g., `行 45-47`)
-- Quote the exact text from the source
-- If multiple quotes from same file, use separate numbered entries
+**Scoring for matching:**
+- Exact keyword match in `keywords`: +3
+- Keyword match in `description`: +2
+- Query term in section `summary`: +2 per match
 
-### Step 6: Verification
-
-Verify that the quoted text actually supports the answer claim. If not:
-- Find additional relevant sections
-- Qualify the answer with "Based on the sources..."
-
-## Node Matching Logic
-
-```
-function findRelevantLeaves(query, node):
-  if node.type == "leaf":
-    score = matchScore(query, node.sections)
-    return [(node, score)] if score > threshold
-  else:
-    results = []
-    for child in node.children:
-      results += findRelevantLeaves(query, child)
-    return results sorted by score
-```
+**Line range reading:**
+- offset: start line number
+- limit: end line number - start line number + 1
 
 ## Error Handling
 
+- Script fails → Try manual execution
 - Knowledge base doesn't exist → "Knowledge base not found: <name>"
 - Tree index is empty → "This knowledge base has no tree index yet. Use /tree-ingest to add documents."
 - No matching nodes found → "No relevant information found in the tree index. Try a different query or ingest relevant documents."
 - Source file doesn't exist (orphan leaf) → Skip and report as warning
-
-## Future
-
-When `tools/tree_query.py` is created, update this skill to try the script first before manual execution.

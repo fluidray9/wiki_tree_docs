@@ -1,3 +1,11 @@
+## [2026-04-09] graph | Knowledge graph rebuilt
+
+21 nodes, 78 edges (78 extracted, 0 inferred).
+
+## [2026-04-09] tree_query | What is RAG?
+
+Tree query answered from 2 source sections.
+
 ## [2026-04-09] tree_query | What is RAG?
 
 Tree query answered from 2 source sections.

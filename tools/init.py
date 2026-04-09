@@ -72,7 +72,21 @@ def init_kb(name: str, alias: str = ""):
         meta = json.loads(read_file(META_FILE))
 
     alias_map = meta.get("alias_map", {})
-    alias_map[name] = alias
+    # Support both old format (string) and new format (object)
+    if isinstance(alias_map.get(name), str):
+        # Migrate old format: keep existing alias, add empty description
+        alias_map[name] = {"alias": alias_map[name], "description": ""}
+    elif name not in alias_map:
+        alias_map[name] = {"alias": alias, "description": ""}
+    else:
+        # Already has object format, just ensure fields exist
+        entry = alias_map[name]
+        if isinstance(entry, str):
+            entry = {"alias": entry, "description": ""}
+        else:
+            entry.setdefault("alias", alias)
+            entry.setdefault("description", "")
+        alias_map[name] = entry
     meta["alias_map"] = alias_map
 
     # Set as default if no default exists

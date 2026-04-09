@@ -40,10 +40,19 @@ def list_kb():
         marker = ""
         if name == default:
             marker = " (default)"
-        if alias:
-            print(f"  - {name}{marker} — {alias}")
+        # Support both old format (string) and new format (object)
+        if isinstance(alias, dict):
+            alias_text = alias.get("alias", "")
+            desc = alias.get("description", "")
+        else:
+            alias_text = alias
+            desc = ""
+        if alias_text:
+            print(f"  - {name}{marker} — {alias_text}")
         else:
             print(f"  - {name}{marker}")
+        if desc:
+            print(f"    {desc[:100]}{'...' if len(desc) > 100 else ''}")
 
     if default:
         print(f"\nDefault: {default}")

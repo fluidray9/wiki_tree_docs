@@ -54,6 +54,8 @@ All scripts run from repo root. Use `--kb <name>` to specify the knowledge base.
 | `python tools/list.py` | List all knowledge bases |
 | `python tools/use.py <name>` | Set default knowledge base |
 | `python tools/use.py --show` | Show current default |
+| `python tools/describe.py --kb <name>` | Generate/update description from tree + wiki |
+| `python tools/describe.py --kb <name> --set "..."` | Set description manually |
 | `python tools/ingest.py <source> --kb <name>` | Ingest a document |
 | `python tools/query.py "<question>" --kb <name>` | Query the wiki |
 | `python tools/tree_query.py "<question>" --kb <name>` | Query the tree index |
@@ -108,15 +110,17 @@ wiki_tree_docs/
 ```json
 {
   "alias_map": {
-    "ai_research": "AI研究",
-    "web_dev": "前端开发"
+    "ai_research": {"alias": "AI研究", "description": "关于人工智能的研究笔记..."},
+    "web_dev": {"alias": "前端开发", "description": "Web开发技术文档..."}
   },
   "default": "ai_research"
 }
 ```
 
-- `alias_map`: Maps knowledge base folder names to human-readable aliases
+- `alias_map`: Maps knowledge base folder names to objects with `alias` (display name) and `description` (auto-generated or manual summary)
 - `default`: The currently selected default knowledge base name, or `null` if none set
+
+**Description generation**: Run `python tools/describe.py --kb <name>` to auto-generate description from tree topics and wiki overview.
 
 ---
 

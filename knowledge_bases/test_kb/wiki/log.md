@@ -26,6 +26,14 @@ Added source from test_folder. Key claims: image reference (fig1.png), Section 1
 
 Added source. Key claims: Test paper introduces an image (figure 1) and Section 1 with some content.
 
+## [2026-04-09] ingest | Large Test Document
+
+Added source from large-test-document.md. PART 1 of 5001 — contains only the document title heading with no body content. No image references. LargeDocumentHandling topic added.
+
+## [2026-04-09] ingest | Large Test Document — PART 4
+
+Updated large-test-document.md: added Section 2 (PART 4) with filler text ("This is content for section 2 with some text that should make the file quite large."). No image references. Tree index section added.
+
 ## Initialized
 
 Knowledge base `test_kb` created.

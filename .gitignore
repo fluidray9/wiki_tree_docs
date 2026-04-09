@@ -3,6 +3,7 @@ __pycache__/
 test_readmes/
 *.py[cod]
 *$py.class
+knowledge_bases/
 *.so
 .Python
 *.egg-info/

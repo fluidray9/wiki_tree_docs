@@ -3,6 +3,36 @@
   "description": "Knowledge base: test_kb",
   "children": [
     {
+      "name": "Large-Document",
+      "description": "Large multi-part test documents spanning many sections or parts",
+      "keywords": [
+        "large document",
+        "multi-part",
+        "test document",
+        "long document",
+        "5001 parts"
+      ],
+      "type": "topic",
+      "children": [
+        {
+          "name": "raw/large-test-document.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Large Test Document",
+              "lines": "1-1",
+              "summary": "Document title heading (PART 1 of 5001 — no body content in this section)"
+            },
+            {
+              "heading": "§ Section 2",
+              "lines": "PART 4 content",
+              "summary": "Section 2 with filler text: 'This is content for section 2 with some text that should make the file quite large.'"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Testing",
       "description": "Test paper with an image and Section 1",
       "keywords": [

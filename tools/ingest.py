@@ -105,7 +105,10 @@ def ingest(source_path: str):
     wiki_context = build_wiki_context()
     schema = read_file(SCHEMA_FILE)
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(
+        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
+    )
 
     prompt = f"""You are maintaining an LLM Wiki. Process this source document and integrate its knowledge into the wiki.
 

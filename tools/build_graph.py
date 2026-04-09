@@ -20,6 +20,7 @@ Edge types:
 import re
 import json
 import hashlib
+import os
 import argparse
 import webbrowser
 from pathlib import Path
@@ -144,7 +145,10 @@ def build_extracted_edges(pages: list[Path]) -> list[dict]:
 
 def build_inferred_edges(pages: list[Path], existing_edges: list[dict], cache: dict) -> list[dict]:
     """Pass 2: Claude-inferred semantic relationships."""
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(
+        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
+    )
     new_edges = []
 
     # Only process pages that changed since last run

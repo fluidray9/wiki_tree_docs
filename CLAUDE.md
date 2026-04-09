@@ -9,6 +9,23 @@ A multi-knowledge-base skill for AI coding agents. Each knowledge base has its o
 - **Tree Index**: Hierarchical JSON structure for navigable retrieval with section-level granularity
 - **meta.json**: Located at repo root, stores alias mapping and current default knowledge base
 
+## API Compatibility
+
+The skill works with any **Anthropic API-compatible provider**. Environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_AUTH_TOKEN` | API key (required for tools/ scripts) |
+| `ANTHROPIC_BASE_URL` | API endpoint (default: `https://api.anthropic.com`) |
+
+Examples of compatible providers:
+- Official Anthropic API
+- MiniMax (e.g., `https://api.minimaxi.com/anthropic`)
+- AWS Bedrock (Claude models)
+- Google Vertex AI (Claude models)
+
+For Claude Code usage, no API key is needed — the agent handles it natively.
+
 ## Slash Commands
 
 | Command | What to say |

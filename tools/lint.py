@@ -16,6 +16,7 @@ Checks:
 
 import re
 import sys
+import os
 import argparse
 from pathlib import Path
 from collections import defaultdict
@@ -112,7 +113,10 @@ def run_lint():
         rel = p.relative_to(REPO_ROOT)
         pages_context += f"\n\n### {rel}\n{read_file(p)[:1500]}"  # truncate long pages
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(
+        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
+    )
     print("  running semantic lint via Claude API...")
     response = client.messages.create(
         model="claude-sonnet-4-6",

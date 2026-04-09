@@ -15,6 +15,7 @@ Flags:
 import sys
 import re
 import json
+import os
 import argparse
 from pathlib import Path
 from datetime import date
@@ -64,7 +65,10 @@ def append_log(entry: str):
 
 def query(question: str, save_path: str | None = None):
     today = date.today().isoformat()
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(
+        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
+    )
 
     # Step 1: Read index
     index_content = read_file(INDEX_FILE)

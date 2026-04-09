@@ -25,6 +25,14 @@
       "group": 2
     },
     {
+      "id": "sources/rag-intro-v2",
+      "label": "RAG \u4ecb\u7ecd",
+      "type": "source",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/sources/rag-intro-v2.md",
+      "group": 1
+    },
+    {
       "id": "sources/transformer-intro-v2",
       "label": "Transformer \u6a21\u578b\u4ecb\u7ecd",
       "type": "source",
@@ -57,12 +65,36 @@
       "group": 2
     },
     {
+      "id": "entities/Augmenter",
+      "label": "Augmenter",
+      "type": "entity",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/entities/Augmenter.md",
+      "group": 1
+    },
+    {
       "id": "entities/Vaswani",
       "label": "Vaswani",
       "type": "entity",
       "color": "#8BC34A",
       "path": "knowledge_bases/ai_research/wiki/entities/Vaswani.md",
       "group": 2
+    },
+    {
+      "id": "entities/Generator",
+      "label": "Generator",
+      "type": "entity",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/entities/Generator.md",
+      "group": 1
+    },
+    {
+      "id": "entities/Retriever",
+      "label": "Retriever",
+      "type": "entity",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/entities/Retriever.md",
+      "group": 1
     }
   ],
   "edges": [
@@ -75,13 +107,48 @@
     },
     {
       "from": "sources/transformer-intro",
-      "to": "entities/Vaswani",
+      "to": "concepts/Transformer",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
     },
     {
       "from": "sources/transformer-intro",
+      "to": "entities/Vaswani",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-intro-v2",
+      "to": "entities/Generator",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-intro-v2",
+      "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-intro-v2",
+      "to": "entities/Augmenter",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-intro-v2",
+      "to": "entities/Retriever",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/transformer-intro-v2",
       "to": "concepts/Transformer",
       "type": "EXTRACTED",
       "color": "#555555",
@@ -90,13 +157,6 @@
     {
       "from": "sources/transformer-intro-v2",
       "to": "entities/Vaswani",
-      "type": "EXTRACTED",
-      "color": "#555555",
-      "confidence": 1.0
-    },
-    {
-      "from": "sources/transformer-intro-v2",
-      "to": "concepts/Transformer",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
@@ -109,13 +169,6 @@
       "confidence": 1.0
     },
     {
-      "from": "concepts/RAG",
-      "to": "sources/rag-intro",
-      "type": "EXTRACTED",
-      "color": "#555555",
-      "confidence": 1.0
-    },
-    {
       "from": "concepts/Transformer",
       "to": "concepts/Self-Attention",
       "type": "EXTRACTED",
@@ -123,8 +176,29 @@
       "confidence": 1.0
     },
     {
+      "from": "entities/Augmenter",
+      "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
       "from": "entities/Vaswani",
       "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Generator",
+      "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Retriever",
+      "to": "concepts/RAG",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0

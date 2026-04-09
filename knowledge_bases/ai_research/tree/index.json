@@ -61,6 +61,32 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "raw/ai_research.md",
+              "type": "leaf",
+              "sections": [
+                {
+                  "heading": "§ 概述",
+                  "lines": "1-4",
+                  "summary": "RAG是一种将检索与生成结合的技术，通过外部知识库检索信息增强语言模型生成能力"
+                },
+                {
+                  "heading": "§ 原理",
+                  "lines": "6-8",
+                  "summary": "RAG系统由检索器（Retriever）、生成器（Generator）、增强器（Augmenter）三组件构成"
+                },
+                {
+                  "heading": "§ 应用场景",
+                  "lines": "10-12",
+                  "summary": "RAG广泛应用于问答系统、文档摘要生成、对话系统，可动态利用外部知识避免模型幻觉"
+                },
+                {
+                  "heading": "§ 优缺点",
+                  "lines": "14-17",
+                  "summary": "优点：可解释性强、实时性好、易于更新知识库；缺点：依赖检索质量、延迟较高"
+                }
+              ]
             }
           ]
         },

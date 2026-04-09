@@ -4,6 +4,7 @@
 - [Overview](overview.md) — living synthesis
 
 ## Sources
+- [RAG 介绍](sources/rag-intro-v2.md) — RAG（Retrieval-Augmented Generation）是一种将检索与生成结合的技术
 - [Transformer 模型介绍](sources/transformer-intro-v2.md) — Transformer 是一种基于自注意力机制的神经网络架构
 - [Transformer 模型介绍](sources/transformer-intro.md) — Transformer 是一种基于自注意力机制的神经网络架构
 - [RAG 介绍](sources/rag-intro.md) — RAG（Retrieval-Augmented Generation）是一种将检索与生成结合的技术

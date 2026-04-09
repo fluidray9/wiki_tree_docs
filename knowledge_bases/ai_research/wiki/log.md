@@ -1,5 +1,21 @@
 ## [2026-04-09] graph | Knowledge graph rebuilt
 
+12 nodes, 15 edges (15 extracted, 0 inferred).
+
+## [2026-04-09] query | What is RAG?
+
+Synthesized answer from 1 pages.
+
+## [2026-04-09] lint | Wiki health check
+
+Ran lint. See lint-report.md for details.
+
+## [2026-04-09] ingest | RAG 介绍
+
+Added source. Key claims: RAG系统由检索器、生成器、增强器三组件构成；广泛应用于问答、摘要、对话系统；优点可解释性强/实时性好/易更新，缺点依赖检索质量/延迟高。注意：此文档与现有rag-intro.md内容重复。
+
+## [2026-04-09] graph | Knowledge graph rebuilt
+
 8 nodes, 9 edges (9 extracted, 0 inferred).
 
 ## [2026-04-09] ingest | Transformer 模型介绍

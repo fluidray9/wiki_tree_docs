@@ -26,7 +26,7 @@ import webbrowser
 from pathlib import Path
 from datetime import date
 
-import anthropic
+from utils import call_claude
 
 try:
     import networkx as nx
@@ -173,10 +173,6 @@ def build_extracted_edges(pages: list[Path]) -> list[dict]:
 
 def build_inferred_edges(pages: list[Path], existing_edges: list[dict], cache: dict) -> list[dict]:
     """Pass 2: Claude-inferred semantic relationships."""
-    client = anthropic.Anthropic(
-        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
-        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
-    )
     new_edges = []
 
     # Only process pages that changed since last run
@@ -200,16 +196,25 @@ def build_inferred_edges(pages: list[Path], existing_edges: list[dict], cache: d
         f"- {e['from']} → {e['to']} (EXTRACTED)" for e in existing_edges[:30]
     )
 
+    infer_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "to": {"type": "string"},
+                "relationship": {"type": "string"},
+                "confidence": {"type": "number"},
+                "type": {"type": "string"}
+            },
+            "required": ["to", "relationship", "confidence", "type"]
+        }
+    }
+
     for p in changed_pages:
         content = read_file(p)[:2000]  # truncate for context efficiency
         src = page_id(p)
 
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
-            messages=[{
-                "role": "user",
-                "content": f"""Analyze this wiki page and identify implicit semantic relationships to other pages in the wiki.
+        prompt = f"""Analyze this wiki page and identify implicit semantic relationships to other pages in the wiki.
 
 Source page: {src}
 Content:
@@ -230,17 +235,12 @@ Rules:
 - Only include pages from the available list above
 - Confidence >= 0.7 → INFERRED, < 0.7 → AMBIGUOUS
 - Do not repeat edges already in the extracted list
-- Return empty array [] if no new relationships found
-"""
-            }]
-        )
-
-        raw = extract_text_from_content(response.content).strip()
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
+- Return empty array [] if no new relationships found"""
 
         try:
-            inferred = json.loads(raw)
+            inferred = call_claude(prompt, infer_schema)
+            if not isinstance(inferred, list):
+                inferred = []
             for rel in inferred:
                 if isinstance(rel, dict) and "to" in rel:
                     new_edges.append({
@@ -386,17 +386,6 @@ function searchNodes(q) {{
 </script>
 </body>
 </html>"""
-
-
-def extract_text_from_content(content_blocks: list) -> str:
-    """Extract text from API response content, handling ThinkingBlocks."""
-    texts = []
-    for block in content_blocks:
-        if hasattr(block, 'text'):
-            texts.append(block.text)
-        elif hasattr(block, 'thinking'):
-            pass  # Skip thinking blocks
-    return "\n".join(texts)
 
 
 def append_log(entry: str):

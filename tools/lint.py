@@ -24,7 +24,7 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import date
 
-import anthropic
+from utils import call_claude_text
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
@@ -192,17 +192,8 @@ def run_lint(kb_path: Path, wiki_dir: Path):
         rel = p.relative_to(REPO_ROOT)
         pages_context += f"\n\n### {rel}\n{read_file(p)[:1500]}"  # truncate long pages
 
-    client = anthropic.Anthropic(
-        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
-        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
-    )
-    print("  running semantic lint via Claude API...")
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=3000,
-        messages=[{
-            "role": "user",
-            "content": f"""You are linting an LLM Wiki. Review the pages below and identify:
+    print("  running semantic lint via Claude CLI...")
+    lint_prompt = f"""You are linting an LLM Wiki. Review the pages below and identify:
 1. Contradictions between pages (claims that conflict)
 2. Stale content (summaries that newer sources have superseded)
 3. Data gaps (important questions the wiki can't answer — suggest specific sources to find)
@@ -217,12 +208,9 @@ Return a markdown lint report with these sections:
 ## Data Gaps & Suggested Sources
 ## Concepts Needing More Depth
 
-Be specific — name the exact pages and claims involved.
-"""
-        }]
-    )
+Be specific — name the exact pages and claims involved."""
 
-    semantic_report = extract_text_from_content(response.content)
+    semantic_report = call_claude_text(lint_prompt, kb_path.name)
 
     # Compose full report
     report_lines = [
@@ -269,17 +257,6 @@ Be specific — name the exact pages and claims involved.
     report = "\n".join(report_lines)
     print("\n" + report)
     return report
-
-
-def extract_text_from_content(content_blocks: list) -> str:
-    """Extract text from API response content, handling ThinkingBlocks."""
-    texts = []
-    for block in content_blocks:
-        if hasattr(block, 'text'):
-            texts.append(block.text)
-        elif hasattr(block, 'thinking'):
-            pass  # Skip thinking blocks
-    return "\n".join(texts)
 
 
 def append_log(entry: str):

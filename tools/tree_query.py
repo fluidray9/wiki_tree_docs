@@ -15,13 +15,12 @@ Flags:
 
 import sys
 import json
-import os
 import re
 import argparse
 from pathlib import Path
 from datetime import date
 
-import anthropic
+from utils import call_claude_text
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
@@ -67,17 +66,6 @@ def write_file(path: Path, content: str):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     print(f"  saved: {path.relative_to(REPO_ROOT)}")
-
-
-def extract_text_from_content(content_blocks: list) -> str:
-    """Extract text from API response content, handling ThinkingBlocks."""
-    texts = []
-    for block in content_blocks:
-        if hasattr(block, 'text'):
-            texts.append(block.text)
-        elif hasattr(block, 'thinking'):
-            pass  # Skip thinking blocks
-    return "\n".join(texts)
 
 
 def find_relevant_leaves(tree_data: dict, query: str, kb_path: Path) -> list[dict]:
@@ -240,20 +228,10 @@ Content:
         sys.exit(0)
 
     # Step 4: Synthesize answer via Claude
-    client = anthropic.Anthropic(
-        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
-        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
-    )
-
     print(f"  synthesizing answer...")
     context = "\n\n".join(sources_context)
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        messages=[{
-            "role": "user",
-            "content": f"""You are querying a knowledge base tree index. Based on the source fragments below, answer the question with precise citations.
+    prompt = f"""You are querying a knowledge base tree index. Based on the source fragments below, answer the question with precise citations.
 
 Question: {question}
 
@@ -266,10 +244,8 @@ Write a well-structured answer. For each claim, cite the source using this forma
 > "<quoted text>"
 
 If multiple fragments support the same point, cite each one separately."""
-        }]
-    )
 
-    answer = extract_text_from_content(response.content)
+    answer = call_claude_text(prompt, kb_path.name)
 
     # Build citation block
     citation_lines = ["\n来源："]

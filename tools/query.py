@@ -21,7 +21,7 @@ import argparse
 from pathlib import Path
 from datetime import date
 
-import anthropic
+from utils import call_claude, call_claude_text
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
@@ -67,17 +67,6 @@ def write_file(path: Path, content: str):
     print(f"  saved: {path.relative_to(REPO_ROOT)}")
 
 
-def extract_text_from_content(content_blocks: list) -> str:
-    """Extract text from API response content, handling ThinkingBlocks."""
-    texts = []
-    for block in content_blocks:
-        if hasattr(block, 'text'):
-            texts.append(block.text)
-        elif hasattr(block, 'thinking'):
-            pass  # Skip thinking blocks
-    return "\n".join(texts)
-
-
 def find_relevant_pages(question: str, index_content: str) -> list[Path]:
     """Extract linked pages from index that seem relevant to the question."""
     # Pull all [[links]] and markdown links from index
@@ -109,10 +98,7 @@ def query(question: str, kb_path: Path, wiki_dir: Path, save_path: str | None = 
     LOG_FILE = wiki_dir / "log.md"
 
     today = date.today().isoformat()
-    client = anthropic.Anthropic(
-        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
-        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
-    )
+    client = None  # placeholder, no longer used
 
     # Step 1: Read index
     index_content = read_file(INDEX_FILE)
@@ -126,20 +112,22 @@ def query(question: str, kb_path: Path, wiki_dir: Path, save_path: str | None = 
     # If no keyword match, ask Claude to identify relevant pages from the index
     if not relevant_pages or len(relevant_pages) <= 1:
         print("  selecting relevant pages via Claude...")
-        selection_response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
-            messages=[{
-                "role": "user",
-                "content": f"Given this wiki index:\n\n{index_content}\n\nWhich pages are most relevant to answering: \"{question}\"\n\nReturn ONLY a JSON array of relative file paths (as listed in the index), e.g. [\"sources/foo.md\", \"concepts/Bar.md\"]. Maximum 10 pages."
-            }]
-        )
-        raw = extract_text_from_content(selection_response.content).strip()
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
+        selection_schema = {
+            "type": "array",
+            "items": {"type": "string"}
+        }
+        selection_prompt = f"""Given this wiki index:
+
+{index_content}
+
+Which pages are most relevant to answering: "{question}"
+
+Return a JSON array of relative file paths (as listed in the index), e.g. ["sources/foo.md", "concepts/Bar.md"]. Maximum 10 pages."""
+
         try:
-            paths = json.loads(raw)
-            relevant_pages = [WIKI_DIR / p for p in paths if (WIKI_DIR / p).exists()]
+            paths = call_claude(selection_prompt, selection_schema, kb_path.name)
+            if isinstance(paths, list):
+                relevant_pages = [WIKI_DIR / p for p in paths if (WIKI_DIR / p).exists()]
         except (json.JSONDecodeError, TypeError):
             pass
 
@@ -156,12 +144,7 @@ def query(question: str, kb_path: Path, wiki_dir: Path, save_path: str | None = 
 
     # Step 4: Synthesize answer
     print(f"  synthesizing answer from {len(relevant_pages)} pages...")
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        messages=[{
-            "role": "user",
-            "content": f"""You are querying an LLM Wiki to answer a question. Use the wiki pages below to synthesize a thorough answer. Cite sources using [[PageName]] wikilink syntax.
+    synthesis_prompt = f"""You are querying an LLM Wiki to answer a question. Use the wiki pages below to synthesize a thorough answer. Cite sources using [[PageName]] wikilink syntax.
 
 Schema:
 {schema}
@@ -171,12 +154,9 @@ Wiki pages:
 
 Question: {question}
 
-Write a well-structured markdown answer with headers, bullets, and [[wikilink]] citations. At the end, add a ## Sources section listing the pages you drew from.
-"""
-        }]
-    )
+Write a well-structured markdown answer with headers, bullets, and [[wikilink]] citations. At the end, add a ## Sources section listing the pages you drew from."""
 
-    answer = extract_text_from_content(response.content)
+    answer = call_claude_text(synthesis_prompt, kb_path.name)
     print("\n" + "=" * 60)
     print(answer)
     print("=" * 60)

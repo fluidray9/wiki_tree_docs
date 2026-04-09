@@ -1,0 +1,75 @@
+{
+  "nodes": [
+    {
+      "id": "overview",
+      "label": "overview",
+      "type": "unknown",
+      "color": "#9E9E9E",
+      "path": "knowledge_bases/test_kb/wiki/overview.md",
+      "group": -1
+    },
+    {
+      "id": "sources/test-paper-2",
+      "label": "Test Paper",
+      "type": "source",
+      "color": "#4CAF50",
+      "path": "knowledge_bases/test_kb/wiki/sources/test-paper-2.md",
+      "group": -1
+    },
+    {
+      "id": "sources/new-test-doc",
+      "label": "Research Notes",
+      "type": "source",
+      "color": "#4CAF50",
+      "path": "knowledge_bases/test_kb/wiki/sources/new-test-doc.md",
+      "group": -1
+    },
+    {
+      "id": "sources/test-paper",
+      "label": "Test Paper",
+      "type": "source",
+      "color": "#4CAF50",
+      "path": "knowledge_bases/test_kb/wiki/sources/test-paper.md",
+      "group": -1
+    },
+    {
+      "id": "concepts/ResearchMethodology",
+      "label": "ResearchMethodology",
+      "type": "unknown",
+      "color": "#9E9E9E",
+      "path": "knowledge_bases/test_kb/wiki/concepts/ResearchMethodology.md",
+      "group": -1
+    }
+  ],
+  "edges": [
+    {
+      "from": "sources/test-paper-2",
+      "to": "overview",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/new-test-doc",
+      "to": "concepts/ResearchMethodology",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/new-test-doc",
+      "to": "overview",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/test-paper",
+      "to": "overview",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    }
+  ],
+  "built": "2026-04-09"
+}

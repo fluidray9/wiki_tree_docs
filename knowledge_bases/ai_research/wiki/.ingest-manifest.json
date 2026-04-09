@@ -3,5 +3,17 @@
     "hash": "d6f76d0caaa416ec",
     "slug": "rag-detailed-principles",
     "title": "RAG 介绍"
+  },
+  "raw/rag-intro.md": {
+    "hash": "d6f76d0caaa416ec",
+    "slug": "rag-intro-v3",
+    "title": "RAG 介绍",
+    "source_name": "rag-intro.md"
+  },
+  "test_source.md": {
+    "hash": "b2e5de0dd39d6b18",
+    "slug": "transformer-intro-v3",
+    "title": "Transformer 模型介绍",
+    "source_name": "test_source.md"
   }
 }

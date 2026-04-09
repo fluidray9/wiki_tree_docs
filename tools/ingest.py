@@ -66,10 +66,38 @@ def read_file(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
-def write_file(path: Path, content: str):
+def write_file(path: Path, content: str, merge: bool = False):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    if merge and path.exists():
+        # Merge: append new connections/quotes to existing content
+        existing = path.read_text(encoding="utf-8")
+        merged = merge_page_content(existing, content)
+        path.write_text(merged, encoding="utf-8")
+    else:
+        path.write_text(content, encoding="utf-8")
     print(f"  wrote: {path.relative_to(REPO_ROOT)}")
+
+
+def merge_page_content(existing: str, new: str) -> str:
+    """Merge new content into existing entity/concept page. Appends new claims/quotes."""
+    # Extract existing content sections
+    # For simplicity: if page exists, append new content under a second "## New Sources" header
+    if "## Key Claims" in new and "## Key Claims" in existing:
+        # Extract claims from new
+        new_claims_match = re.search(r"(## Key Claims\n[\s\S]*?)(?=\n## |$)", new)
+        if new_claims_match:
+            new_claims = new_claims_match.group(1).strip()
+            # Remove first "## Key Claims" header from new claims, keep bullet points
+            new_claims_body = re.sub(r"^## Key Claims\n", "", new_claims)
+            if new_claims_body.strip():
+                existing = existing.rstrip() + "\n\n## Key Claims (additional)\n" + new_claims_body
+    if "## Connections" in new and "## Connections" in existing:
+        new_conn_match = re.search(r"(## Connections\n[\s\S]*?)(?=\n## |$)", new)
+        if new_conn_match:
+            new_conn_body = re.sub(r"^## Connections\n", "", new_conn_match.group(1))
+            if new_conn_body.strip():
+                existing = existing.rstrip() + "\n\n## Connections (additional)\n" + new_conn_body
+    return existing
 
 
 def get_manifest(kb_path: Path) -> dict:
@@ -86,13 +114,19 @@ def save_manifest(kb_path: Path, manifest: dict):
     manifest_file.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
 
 
-def mark_ingested(kb_path: Path, source_name: str, source_hash: str, slug: str, title: str):
-    """Record this source as successfully ingested."""
+def mark_ingested(kb_path: Path, source: Path, source_hash: str, slug: str, title: str):
+    """Record this source as successfully ingested. Uses relative path as key to avoid name collisions."""
     manifest = get_manifest(kb_path)
-    manifest[source_name] = {
+    # Use relative path from kb root as key (e.g. "docs/rag.md"), not just filename
+    try:
+        rel_path = str(source.resolve().relative_to(kb_path.resolve()))
+    except ValueError:
+        rel_path = source.name
+    manifest[rel_path] = {
         "hash": source_hash,
         "slug": slug,
-        "title": title
+        "title": title,
+        "source_name": source.name
     }
     save_manifest(kb_path, manifest)
 
@@ -113,7 +147,7 @@ def build_wiki_context() -> str:
 
 
 def update_tree_index(tree_node: dict, kb_path: Path):
-    """Update tree/index.json with new tree nodes."""
+    """Update tree/index.json with new tree nodes. Idempotent: skips if leaf already exists."""
     tree_file = kb_path / "tree" / "index.json"
 
     if tree_file.exists():
@@ -126,6 +160,8 @@ def update_tree_index(tree_node: dict, kb_path: Path):
 
     topic_path = tree_node.get("topic_path", [])
     sections = tree_node.get("sections", [])
+    slug = tree_node.get("slug", "")
+    raw_path = f"raw/{slug}.md" if slug else f"raw/{kb_path.name}.md"
 
     # Navigate or create the topic path
     current_level = tree_data["children"]
@@ -150,11 +186,13 @@ def update_tree_index(tree_node: dict, kb_path: Path):
             current_level.append(new_topic)
             current_level = new_topic["children"]
 
-    # Add the leaf node for this document
-    slug = tree_node.get("slug", "")
-    # Use the raw path relative to kb
-    raw_path = f"raw/{slug}.md" if slug else f"raw/{kb_path.name}.md"
+    # Skip if this leaf already exists under this parent
+    for existing in current_level:
+        if existing.get("name") == raw_path and existing.get("type") == "leaf":
+            print(f"  (tree leaf {raw_path} already exists — skipping)")
+            return
 
+    # Add the leaf node for this document
     leaf_node = {
         "name": raw_path,
         "type": "leaf",
@@ -226,24 +264,28 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
         print(f"Error: file not found: {source_path}")
         sys.exit(1)
 
-    # Copy source to raw/ if it's not already there
-    dest_in_raw = raw_dir / source.name
-    if not dest_in_raw.exists() or dest_in_raw.read_text() != source.read_text():
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, dest_in_raw)
-        print(f"  copied to: {dest_in_raw.relative_to(REPO_ROOT)}")
-
     source_content = source.read_text(encoding="utf-8")
     source_hash = sha256(source_content)
     today = date.today().isoformat()
 
     # Idempotency check — skip if this exact source was already ingested
     manifest = get_manifest(kb_path)
-    entry = manifest.get(source.name)
+    try:
+        rel_path = str(source.resolve().relative_to(kb_path.resolve()))
+    except ValueError:
+        rel_path = source.name
+    entry = manifest.get(rel_path)
     if entry is not None and entry.get("hash") == source_hash:
         print(f"\nSkipping: {source.name}  (hash: {source_hash})")
         print(f"  Already ingested as '{entry['slug']}' — source unchanged.")
         return
+
+    # Copy source to raw/ if it's not already there
+    dest_in_raw = raw_dir / source.name
+    if not dest_in_raw.exists() or dest_in_raw.read_text() != source.read_text():
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, dest_in_raw)
+        print(f"  copied to: {dest_in_raw.relative_to(REPO_ROOT)}")
 
     print(f"\nIngesting: {source.name}  (hash: {source_hash})")
 
@@ -320,13 +362,13 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
     slug = data["slug"]
     write_file(WIKI_DIR / "sources" / f"{slug}.md", data["source_page"])
 
-    # Write entity pages
+    # Write entity pages (merge with existing if present)
     for page in data.get("entity_pages", []):
-        write_file(WIKI_DIR / page["path"], page["content"])
+        write_file(WIKI_DIR / page["path"], page["content"], merge=True)
 
-    # Write concept pages
+    # Write concept pages (merge with existing if present)
     for page in data.get("concept_pages", []):
-        write_file(WIKI_DIR / page["path"], page["content"])
+        write_file(WIKI_DIR / page["path"], page["content"], merge=True)
 
     # Update overview
     if data.get("overview_update"):
@@ -351,7 +393,7 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
         update_tree_index(tree_node, kb_path)
 
     # Record successful ingestion for idempotency
-    mark_ingested(kb_path, source.name, source_hash, slug, data["title"])
+    mark_ingested(kb_path, source, source_hash, slug, data["title"])
 
     print(f"\nDone. Ingested: {data['title']}")
 

@@ -1,3 +1,23 @@
+## [2026-04-09] query | What is RAG?
+
+Synthesized answer from 1 pages.
+
+## [2026-04-09] lint | Wiki health check
+
+Ran lint. See lint-report.md for details.
+
+## [2026-04-09] lint | Wiki health check
+
+Ran lint. See lint-report.md for details.
+
+## [2026-04-09] ingest | Transformer 模型介绍
+
+Added source: test_source.md (transformer-intro-v3.md). Key claims: Transformer 由 Vaswani 等人于 2017 年提出，核心组件包括多头注意力、前馈神经网络和位置编码，广泛应用于 NLP、视觉和多模态领域。
+
+## [2026-04-09] ingest | RAG 介绍
+
+Added source: raw/rag-intro.md (rag-intro-v3.md)。Key claims: RAG三组件架构（检索器、生成器、增强器），应用场景与优缺点。此文档为第四个RAG介绍版本，与现有三个版本内容高度相似，建议后续整合。
+
 ## [2026-04-09] graph | Knowledge graph rebuilt
 
 15 nodes, 60 edges (60 extracted, 0 inferred).

@@ -7,6 +7,7 @@ Provides Claude CLI subprocess wrapper for structured JSON output.
 import subprocess
 import json as _json
 import re
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -124,3 +125,85 @@ def write_file(path: Path, content: str):
     """Write content to a file, creating parent directories if needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+# File size thresholds
+SIZE_WARNING_KB = 500      # Warn if file > 500KB
+SIZE_SPLIT_KB = 2000      # Split if file > 2MB
+SIZE_SPLIT_LINES = 3000   # Or if file > 3000 lines
+MAX_SECTIONS = 50          # Maximum sections to process (fall back to truncation if exceeded)
+
+
+def get_file_sizeKB(path: Path) -> float:
+    """Get file size in KB."""
+    return path.stat().st_size / 1024
+
+
+def split_markdown_by_headings(content: str) -> list[dict]:
+    """Split markdown content by top-level (#) and second-level (##) headings.
+
+    Returns list of {"heading": "...", "content": "...", "level": 1 or 2}.
+    Content before first heading goes under heading "" (level 0).
+    """
+    sections = []
+    current_heading = ""
+    current_level = 0
+    current_lines = []
+
+    lines = content.split("\n")
+    for line in lines:
+        # Match # Heading or ## Heading
+        m = re.match(r'^(#{1,2})\s+(.+)$', line)
+        if m:
+            # Save previous section
+            if current_heading or current_lines:
+                sections.append({
+                    "heading": current_heading.strip(),
+                    "level": current_level,
+                    "content": "\n".join(current_lines).strip()
+                })
+            current_heading = m.group(2)
+            current_level = len(m.group(1))
+            current_lines = []
+        else:
+            current_lines.append(line)
+
+    # Don't forget last section
+    if current_heading or current_lines:
+        sections.append({
+            "heading": current_heading.strip(),
+            "level": current_level,
+            "content": "\n".join(current_lines).strip()
+        })
+
+    return sections
+
+
+def check_and_split_file(path: Path) -> tuple[str, list[dict] | None]:
+    """Check if file needs splitting and split if necessary.
+
+    Returns (full_content, split_sections or None).
+    If file is small: returns (content, None).
+    If file is large: returns (content, list of section dicts from split_markdown_by_headings).
+    Prints warnings for large files.
+    """
+    size_kb = get_file_sizeKB(path)
+    content = path.read_text(encoding="utf-8")
+    line_count = content.count("\n") + 1
+
+    if size_kb <= SIZE_WARNING_KB and line_count <= SIZE_SPLIT_LINES:
+        return content, None
+
+    # File is large - need to split
+    print(f"  warning: file is large ({size_kb:.0f}KB, {line_count} lines)", file=sys.stderr)
+
+    if size_kb > SIZE_SPLIT_KB or line_count > SIZE_SPLIT_LINES:
+        sections = split_markdown_by_headings(content)
+        if len(sections) > MAX_SECTIONS:
+            print(f"  warning: too many sections ({len(sections)}), falling back to truncation", file=sys.stderr)
+            return content[:int(SIZE_SPLIT_KB * 512)], None  # Truncate to ~1MB
+        print(f"  split into {len(sections)} sections", file=sys.stderr)
+        return content, sections
+
+    # Between WARNING and SPLIT threshold - just warn, don't split
+    return content, None

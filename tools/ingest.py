@@ -25,6 +25,9 @@ import argparse
 from pathlib import Path
 from datetime import date
 
+sys.path.insert(0, str(Path(__file__).parent))
+from utils import call_claude, check_and_split_file, read_file as utils_read_file, write_file as utils_write_file
+
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
@@ -141,51 +144,113 @@ def _build_content_with_images(source: Path, content: str, is_dir: bool) -> str:
     return content
 
 
-def call_claude(prompt: str, output_schema: dict, kb_name: str) -> dict:
-    """Call claude -p CLI for structured JSON output. Returns parsed JSON result."""
-    import subprocess
-    import json as _json
+def merge_ingest_results(results: list[dict]) -> dict:
+    """Merge results from processing multiple sections of a large file.
 
-    schema_json = _json.dumps(output_schema)
+    Later results override earlier ones for title/slug, but entity_pages,
+    concept_pages, contradictions, and sections are combined.
+    """
+    if not results:
+        return {}
+    if len(results) == 1:
+        return results[0]
 
-    cmd = [
-        "claude", "-p",
-        "--dangerously-skip-permissions",
-        "--bare",
-        "--output-format", "json",
-        f"--json-schema", schema_json,
-        "--add-dir", ".",
-        "--allowedTools", "Read",
-        "--no-session-persistence",
-        prompt
-    ]
+    merged = {
+        "title": results[0].get("title", ""),
+        "slug": results[0].get("slug", ""),
+        "source_page": results[0].get("source_page", ""),
+        "index_entry": results[0].get("index_entry", ""),
+        "overview_update": results[-1].get("overview_update"),
+        "entity_pages": [],
+        "concept_pages": [],
+        "contradictions": [],
+        "log_entry": "",
+        "tree_node": None,
+    }
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=300,
-        cwd=str(REPO_ROOT)
-    )
+    all_sections = []
 
-    if result.returncode != 0:
-        raise RuntimeError(f"claude CLI failed: {result.stderr}")
+    for r in results:
+        # Combine entity pages (deduplicate by path)
+        seen_entity_paths = set(p["path"] for p in merged["entity_pages"])
+        for ep in r.get("entity_pages", []):
+            if ep["path"] not in seen_entity_paths:
+                merged["entity_pages"].append(ep)
+                seen_entity_paths.add(ep["path"])
 
-    try:
-        output = _json.loads(result.stdout)
-        structured = output.get("structured_output")
-        if structured:
-            return structured
-        # Fallback: try parsing result field
-        raw_result = output.get("result", "")
-        # Try to extract JSON from result text
-        import re
-        match = re.search(r'\{[\s\S]*\}', raw_result)
-        if match:
-            return _json.loads(match.group())
-        raise ValueError(f"No structured output in claude response: {raw_result[:200]}")
-    except (_json.JSONDecodeError, ValueError) as e:
-        raise RuntimeError(f"Failed to parse claude JSON output: {e}\nRaw: {result.stdout[:500]}")
+        # Combine concept pages (deduplicate by path)
+        seen_concept_paths = set(p["path"] for p in merged["concept_pages"])
+        for cp in r.get("concept_pages", []):
+            if cp["path"] not in seen_concept_paths:
+                merged["concept_pages"].append(cp)
+                seen_concept_paths.add(cp["path"])
+
+        # Combine contradictions
+        merged["contradictions"].extend(r.get("contradictions", []))
+
+        # Collect tree sections
+        tn = r.get("tree_node")
+        if tn and tn.get("sections"):
+            all_sections.extend(tn["sections"])
+
+    # Build merged source_page from all results
+    summaries = []
+    for r in results:
+        # Extract summary section from source_page if present
+        sp = r.get("source_page", "")
+        m = re.search(r"## Summary\n([\s\S]+?)(?=\n## |$)", sp)
+        if m:
+            summaries.append(m.group(1).strip())
+        else:
+            summaries.append(sp[:200])
+
+    # Combine log entries
+    log_entries = [r.get("log_entry", "") for r in results if r.get("log_entry")]
+    merged["log_entry"] = " / ".join(log_entries)
+
+    # Build merged tree_node
+    if results[0].get("tree_node"):
+        first_tn = results[0]["tree_node"]
+        merged["tree_node"] = {
+            "topic_path": first_tn.get("topic_path", []),
+            "description": first_tn.get("description", ""),
+            "keywords": first_tn.get("keywords", []),
+            "sections": all_sections,
+        }
+
+    # Rebuild source_page with combined summary
+    if summaries:
+        merged["source_page"] = _rebuild_source_page(results[0], summaries)
+
+    return merged
+
+
+def _rebuild_source_page(first_result: dict, summaries: list[str]) -> str:
+    """Rebuild source_page markdown with combined summaries from all sections."""
+    sp = first_result.get("source_page", "")
+
+    # Find and replace the Summary section
+    combined = "\n\n".join(f"- {s}" for s in summaries if s.strip())
+
+    if "## Summary" in sp:
+        # Replace existing Summary section
+        new_sp = re.sub(
+            r"## Summary\n[\s\S]*?(?=\n## |$)",
+            f"## Summary\n{combined}",
+            sp
+        )
+        return new_sp
+    else:
+        # Prepend summary after frontmatter
+        lines = sp.split("\n")
+        insert_idx = 0
+        for i, line in enumerate(lines):
+            if line.startswith("---"):
+                insert_idx = i + 1
+            elif insert_idx > 0 and line.strip() == "":
+                break
+        lines.insert(insert_idx, f"\n## Summary\n{combined}\n")
+        return "\n".join(lines)
 
 
 def mark_ingested(kb_path: Path, manifest_key: str, source_hash: str, slug: str, title: str):
@@ -454,12 +519,71 @@ Return a JSON object with these fields:
 - tree_node: {{"topic_path": ["ParentTopic"], "description": "...", "keywords": [...], "sections": [{{"heading": "§ Title", "lines": "start-end", "summary": "..."}}]}}
 """
 
-    print("  calling Claude...")
-    try:
-        data = call_claude(prompt, INGEST_SCHEMA, kb_path.name)
-    except RuntimeError as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    # --- Check if file needs splitting ---
+    _, split_sections = check_and_split_file(source if source.is_file() else main_md)
+
+    if split_sections:
+        # Process each section separately and merge results
+        print(f"  processing {len(split_sections)} sections...")
+        results = []
+        for i, sec in enumerate(split_sections, 1):
+            sec_prompt = f"""You are maintaining an LLM Wiki. Process this PART of a source document and integrate its knowledge into the wiki.
+
+This is PART {i} of {len(split_sections)} from this document.
+The document's title is the overall title (use from first part for title/slug).
+
+Schema and conventions:
+{schema}
+
+Current wiki state (index + recent pages):
+{wiki_context if wiki_context else "(wiki is empty — this is the first source)"}
+
+Source section (PART {i} of {len(split_sections)}):
+=== SECTION START ===
+Heading: {sec['heading'] or '(Document beginning)'}
+Level: {sec['level']}
+Content:
+{sec['content'][:3000]}
+=== SECTION END ===
+
+If this section contains image references (e.g. ![fig](path/to/image.png)), use the Read tool to view those images — Claude's Read tool handles images natively.
+
+Today's date: {today}
+
+Return a JSON object with these fields:
+- title: The overall document title (use the same title for all parts)
+- slug: kebab-case slug (same for all parts)
+- source_page: summary for THIS SECTION ONLY (will be combined with other sections)
+- index_entry: summary line (same for all parts)
+- overview_update: null (only set by first part)
+- entity_pages: entities mentioned in THIS section only
+- concept_pages: concepts mentioned in THIS section only
+- contradictions: contradictions involving THIS section only
+- log_entry: empty string (only first part provides log entry)
+- tree_node: sections from THIS part only (topic_path/description/keywords from first part)
+"""
+            try:
+                result = call_claude(sec_prompt, INGEST_SCHEMA, kb_path.name)
+                results.append(result)
+            except RuntimeError as e:
+                print(f"  warning: failed to process section {i}: {e}")
+                continue
+
+        if not results:
+            print(f"Error: no sections were successfully processed")
+            sys.exit(1)
+
+        # Merge results from all sections
+        data = merge_ingest_results(results)
+        print(f"  merged results from {len(results)} sections")
+    else:
+        # Normal single-pass processing
+        print("  calling Claude...")
+        try:
+            data = call_claude(prompt, INGEST_SCHEMA, kb_path.name)
+        except RuntimeError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
 
     # Write source page
     slug = data["slug"]

@@ -17,12 +17,52 @@
       "group": 1
     },
     {
+      "id": "sources/transformer-intro",
+      "label": "Transformer \u6a21\u578b\u4ecb\u7ecd",
+      "type": "source",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/sources/transformer-intro.md",
+      "group": 2
+    },
+    {
+      "id": "sources/transformer-intro-v2",
+      "label": "Transformer \u6a21\u578b\u4ecb\u7ecd",
+      "type": "source",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/sources/transformer-intro-v2.md",
+      "group": 2
+    },
+    {
+      "id": "concepts/Self-Attention",
+      "label": "Self-Attention",
+      "type": "concept",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/concepts/Self-Attention.md",
+      "group": 2
+    },
+    {
       "id": "concepts/RAG",
       "label": "RAG",
       "type": "concept",
       "color": "#00BCD4",
       "path": "knowledge_bases/ai_research/wiki/concepts/RAG.md",
       "group": 1
+    },
+    {
+      "id": "concepts/Transformer",
+      "label": "Transformer",
+      "type": "concept",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/concepts/Transformer.md",
+      "group": 2
+    },
+    {
+      "id": "entities/Vaswani",
+      "label": "Vaswani",
+      "type": "entity",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/entities/Vaswani.md",
+      "group": 2
     }
   ],
   "edges": [
@@ -34,8 +74,57 @@
       "confidence": 1.0
     },
     {
+      "from": "sources/transformer-intro",
+      "to": "entities/Vaswani",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/transformer-intro",
+      "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/transformer-intro-v2",
+      "to": "entities/Vaswani",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/transformer-intro-v2",
+      "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/Self-Attention",
+      "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
       "from": "concepts/RAG",
       "to": "sources/rag-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/Transformer",
+      "to": "concepts/Self-Attention",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Vaswani",
+      "to": "concepts/Transformer",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0

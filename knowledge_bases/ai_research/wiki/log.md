@@ -1,3 +1,21 @@
+## [2026-04-09] graph | Knowledge graph rebuilt
+
+8 nodes, 9 edges (9 extracted, 0 inferred).
+
+## [2026-04-09] ingest | Transformer 模型介绍
+
+Added source. Key claims: Transformer 由 Vaswani 等人于 2017 年提出；核心组件包括多头注意力机制、前馈神经网络和位置编码；广泛应用于 NLP、视觉和多模态领域。
+
+注：此文档与现有 transformer-intro.md 内容高度相似。
+
+## [2026-04-09] query | What is RAG?
+
+Synthesized answer from 1 pages.
+
+## [2026-04-09] lint | Wiki health check
+
+Ran lint. See lint-report.md for details.
+
 ## [2026-04-09] ingest | Transformer 模型介绍
 
 Added source: Transformer 模型介绍 (raw/transformer-intro.md)

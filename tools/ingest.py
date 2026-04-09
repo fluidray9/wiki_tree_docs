@@ -87,17 +87,6 @@ def build_wiki_context() -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def parse_json_from_response(text: str) -> dict:
-    # Strip markdown code fences if present
-    text = re.sub(r"^```(?:json)?\s*", "", text.strip())
-    text = re.sub(r"\s*```$", "", text.strip())
-    # Find the outermost JSON object
-    match = re.search(r"\{[\s\S]*\}", text)
-    if not match:
-        raise ValueError("No JSON object found in response")
-    return json.loads(match.group())
-
-
 def update_tree_index(tree_node: dict, kb_path: Path):
     """Update tree/index.json with new tree nodes."""
     tree_file = kb_path / "tree" / "index.json"

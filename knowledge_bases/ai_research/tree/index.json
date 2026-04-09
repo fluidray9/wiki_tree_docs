@@ -99,6 +99,27 @@
                   "summary": "Transformer 及其变体广泛应用于 NLP（BERT、GPT）、视觉（ViT、DETR）和多模态（CLIP、GPT-4V）领域"
                 }
               ]
+            },
+            {
+              "name": "raw/ai_research.md",
+              "type": "leaf",
+              "sections": [
+                {
+                  "heading": "§ 概述",
+                  "lines": "1-2",
+                  "summary": "Transformer 定义：由 Vaswani 等人在 2017 年提出的基于自注意力机制的神经网络架构"
+                },
+                {
+                  "heading": "§ 核心组件",
+                  "lines": "4-8",
+                  "summary": "三个核心组件：多头注意力机制（并行计算多个注意力头）、前馈神经网络（每个位置独立处理）、位置编码（注入序列位置信息）"
+                },
+                {
+                  "heading": "§ 应用",
+                  "lines": "10-15",
+                  "summary": "应用领域包括 NLP（BERT、GPT 系列）、视觉（ViT、DETR）、多模态（CLIP、GPT-4V）"
+                }
+              ]
             }
           ]
         }

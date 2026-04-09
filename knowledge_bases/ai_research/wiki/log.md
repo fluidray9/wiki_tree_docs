@@ -1,5 +1,17 @@
 ## [2026-04-09] graph | Knowledge graph rebuilt
 
+15 nodes, 60 edges (60 extracted, 0 inferred).
+
+## [2026-04-09] lint | Wiki health check
+
+Ran lint. See lint-report.md for details.
+
+## [2026-04-09] ingest | RAG 介绍
+
+Added source `raw/rag-intro.md` with slug `rag-detailed-principles`. Key claims: RAG三组件（检索器、生成器、增强器）、RAG优势（避免幻觉、可解释性强）、应用场景（问答、摘要、对话）。注意事项：此文档与现有 rag-intro.md 和 rag-intro-v2.md 内容完全一致，建议后续清理重复文档。
+
+## [2026-04-09] graph | Knowledge graph rebuilt
+
 12 nodes, 15 edges (15 extracted, 0 inferred).
 
 ## [2026-04-09] query | What is RAG?

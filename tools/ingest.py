@@ -72,6 +72,31 @@ def write_file(path: Path, content: str):
     print(f"  wrote: {path.relative_to(REPO_ROOT)}")
 
 
+def get_manifest(kb_path: Path) -> dict:
+    """Load or initialize the ingest manifest."""
+    manifest_file = kb_path / "wiki" / ".ingest-manifest.json"
+    if manifest_file.exists():
+        return json.loads(manifest_file.read_text())
+    return {}
+
+
+def save_manifest(kb_path: Path, manifest: dict):
+    """Save the ingest manifest."""
+    manifest_file = kb_path / "wiki" / ".ingest-manifest.json"
+    manifest_file.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
+
+
+def mark_ingested(kb_path: Path, source_name: str, source_hash: str, slug: str, title: str):
+    """Record this source as successfully ingested."""
+    manifest = get_manifest(kb_path)
+    manifest[source_name] = {
+        "hash": source_hash,
+        "slug": slug,
+        "title": title
+    }
+    save_manifest(kb_path, manifest)
+
+
 def build_wiki_context() -> str:
     parts = []
     if INDEX_FILE.exists():
@@ -154,10 +179,15 @@ def parse_json_from_response(text: str) -> dict:
     return json.loads(match.group())
 
 
-def update_index(new_entry: str, section: str = "Sources"):
+def update_index(new_entry: str, slug: str, section: str = "Sources"):
+    """Add entry to index if slug is not already present."""
     content = read_file(INDEX_FILE)
     if not content:
         content = "# Wiki Index\n\n## Overview\n- [Overview](overview.md) — living synthesis\n\n## Sources\n\n## Entities\n\n## Concepts\n\n## Syntheses\n"
+    # Skip if this slug is already indexed
+    if f"sources/{slug}.md" in content:
+        print(f"  (index entry for {slug} already exists — skipping)")
+        return
     section_header = f"## {section}"
     if section_header in content:
         content = content.replace(section_header + "\n", section_header + "\n" + new_entry + "\n")
@@ -206,6 +236,14 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
     source_content = source.read_text(encoding="utf-8")
     source_hash = sha256(source_content)
     today = date.today().isoformat()
+
+    # Idempotency check — skip if this exact source was already ingested
+    manifest = get_manifest(kb_path)
+    entry = manifest.get(source.name)
+    if entry is not None and entry.get("hash") == source_hash:
+        print(f"\nSkipping: {source.name}  (hash: {source_hash})")
+        print(f"  Already ingested as '{entry['slug']}' — source unchanged.")
+        return
 
     print(f"\nIngesting: {source.name}  (hash: {source_hash})")
 
@@ -295,7 +333,7 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
         write_file(OVERVIEW_FILE, data["overview_update"])
 
     # Update index
-    update_index(data["index_entry"], section="Sources")
+    update_index(data["index_entry"], slug=slug, section="Sources")
 
     # Append log
     append_log(data["log_entry"])
@@ -311,6 +349,9 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
     tree_node = data.get("tree_node")
     if tree_node:
         update_tree_index(tree_node, kb_path)
+
+    # Record successful ingestion for idempotency
+    mark_ingested(kb_path, source.name, source_hash, slug, data["title"])
 
     print(f"\nDone. Ingested: {data['title']}")
 

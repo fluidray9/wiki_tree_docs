@@ -25,6 +25,14 @@
       "group": 2
     },
     {
+      "id": "sources/rag-detailed-principles",
+      "label": "RAG \u4ecb\u7ecd",
+      "type": "source",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/sources/rag-detailed-principles.md",
+      "group": 1
+    },
+    {
       "id": "sources/rag-intro-v2",
       "label": "RAG \u4ecb\u7ecd",
       "type": "source",
@@ -65,6 +73,14 @@
       "group": 2
     },
     {
+      "id": "entities/BERT",
+      "label": "BERT",
+      "type": "entity",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/entities/BERT.md",
+      "group": 2
+    },
+    {
       "id": "entities/Augmenter",
       "label": "Augmenter",
       "type": "entity",
@@ -87,6 +103,14 @@
       "color": "#00BCD4",
       "path": "knowledge_bases/ai_research/wiki/entities/Generator.md",
       "group": 1
+    },
+    {
+      "id": "entities/GPT",
+      "label": "GPT",
+      "type": "entity",
+      "color": "#8BC34A",
+      "path": "knowledge_bases/ai_research/wiki/entities/GPT.md",
+      "group": 2
     },
     {
       "id": "entities/Retriever",
@@ -120,15 +144,43 @@
       "confidence": 1.0
     },
     {
-      "from": "sources/rag-intro-v2",
-      "to": "entities/Generator",
+      "from": "sources/transformer-intro",
+      "to": "entities/BERT",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
     },
     {
-      "from": "sources/rag-intro-v2",
+      "from": "sources/transformer-intro",
+      "to": "entities/GPT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-detailed-principles",
+      "to": "entities/Augmenter",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-detailed-principles",
       "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-detailed-principles",
+      "to": "entities/Retriever",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-detailed-principles",
+      "to": "entities/Generator",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
@@ -142,7 +194,21 @@
     },
     {
       "from": "sources/rag-intro-v2",
+      "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-intro-v2",
       "to": "entities/Retriever",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/rag-intro-v2",
+      "to": "entities/Generator",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
@@ -162,6 +228,20 @@
       "confidence": 1.0
     },
     {
+      "from": "sources/transformer-intro-v2",
+      "to": "entities/BERT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "sources/transformer-intro-v2",
+      "to": "entities/GPT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
       "from": "concepts/Self-Attention",
       "to": "concepts/Transformer",
       "type": "EXTRACTED",
@@ -169,8 +249,106 @@
       "confidence": 1.0
     },
     {
+      "from": "concepts/RAG",
+      "to": "sources/rag-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/RAG",
+      "to": "sources/rag-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/RAG",
+      "to": "sources/rag-detailed-principles",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/RAG",
+      "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
       "from": "concepts/Transformer",
-      "to": "concepts/Self-Attention",
+      "to": "sources/transformer-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/Transformer",
+      "to": "entities/BERT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/Transformer",
+      "to": "entities/Vaswani",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/Transformer",
+      "to": "entities/GPT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/Transformer",
+      "to": "sources/transformer-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/BERT",
+      "to": "sources/transformer-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/BERT",
+      "to": "entities/Vaswani",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/BERT",
+      "to": "entities/GPT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/BERT",
+      "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/BERT",
+      "to": "sources/transformer-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Augmenter",
+      "to": "sources/rag-intro",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
@@ -183,8 +361,71 @@
       "confidence": 1.0
     },
     {
+      "from": "entities/Augmenter",
+      "to": "sources/rag-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Augmenter",
+      "to": "entities/Generator",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Augmenter",
+      "to": "entities/Retriever",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Augmenter",
+      "to": "sources/rag-detailed-principles",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Vaswani",
+      "to": "sources/transformer-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Vaswani",
+      "to": "entities/BERT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Vaswani",
+      "to": "entities/GPT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
       "from": "entities/Vaswani",
       "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Vaswani",
+      "to": "sources/transformer-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Generator",
+      "to": "sources/rag-intro",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0
@@ -197,8 +438,106 @@
       "confidence": 1.0
     },
     {
+      "from": "entities/Generator",
+      "to": "sources/rag-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Generator",
+      "to": "entities/Augmenter",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Generator",
+      "to": "sources/rag-detailed-principles",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Generator",
+      "to": "entities/Retriever",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/GPT",
+      "to": "sources/transformer-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/GPT",
+      "to": "entities/BERT",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/GPT",
+      "to": "entities/Vaswani",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/GPT",
+      "to": "concepts/Transformer",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/GPT",
+      "to": "sources/transformer-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Retriever",
+      "to": "sources/rag-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
       "from": "entities/Retriever",
       "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Retriever",
+      "to": "sources/rag-intro-v2",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Retriever",
+      "to": "entities/Generator",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Retriever",
+      "to": "entities/Augmenter",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "entities/Retriever",
+      "to": "sources/rag-detailed-principles",
       "type": "EXTRACTED",
       "color": "#555555",
       "confidence": 1.0

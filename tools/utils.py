@@ -38,11 +38,12 @@ def call_claude(prompt: str, output_schema: dict, kb_name: str | None = None) ->
         "--add-dir", ".",
         "--allowedTools", "Read",
         "--no-session-persistence",
-        prompt
     ]
 
+    # Use stdin for large prompts to avoid ARG_MAX limit
     result = subprocess.run(
         cmd,
+        input=prompt,
         capture_output=True,
         text=True,
         timeout=300,
@@ -89,11 +90,12 @@ def call_claude_text(prompt: str, kb_name: str | None = None) -> str:
         "--add-dir", ".",
         "--allowedTools", "Read",
         "--no-session-persistence",
-        prompt
     ]
 
+    # Use stdin for large prompts to avoid ARG_MAX limit
     result = subprocess.run(
         cmd,
+        input=prompt,
         capture_output=True,
         text=True,
         timeout=300,
@@ -200,8 +202,12 @@ def check_and_split_file(path: Path) -> tuple[str, list[dict] | None]:
     if size_kb > SIZE_SPLIT_KB or line_count > SIZE_SPLIT_LINES:
         sections = split_markdown_by_headings(content)
         if len(sections) > MAX_SECTIONS:
-            print(f"  warning: too many sections ({len(sections)}), falling back to truncation", file=sys.stderr)
-            return content[:int(SIZE_SPLIT_KB * 512)], None  # Truncate to ~1MB
+            # Truncate to first N lines (roughly 200KB to stay within prompt limits)
+            max_lines = 3000
+            truncated_lines = content.split("\n")[:max_lines]
+            truncated = "\n".join(truncated_lines)
+            print(f"  warning: too many sections ({len(sections)}), truncated to {max_lines} lines", file=sys.stderr)
+            return truncated, None
         print(f"  split into {len(sections)} sections", file=sys.stderr)
         return content, sections
 

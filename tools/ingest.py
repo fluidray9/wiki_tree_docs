@@ -26,12 +26,52 @@ from pathlib import Path
 from datetime import date
 
 sys.path.insert(0, str(Path(__file__).parent))
-from utils import call_claude, check_and_split_file, read_file as utils_read_file, write_file as utils_write_file
+from utils import call_claude, check_and_split_file
 
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
 META_FILE = REPO_ROOT / "meta.json"
+
+# Inline format guide for ingest (replaces CLAUDE.md to reduce prompt size)
+INGEST_FORMAT = """
+## Wiki Structure
+- wiki/sources/<slug>.md: 源文档摘要页
+- wiki/entities/<Name>.md: 实体页（人/公司/项目/产品）
+- wiki/concepts/<Name>.md: 概念页（思想/框架/方法）
+
+## Source Page Format (wiki/sources/<slug>.md)
+---
+title: "文档标题"
+type: source
+date: YYYY-MM-DD
+source_file: raw/...
+---
+## Summary
+2-4句摘要
+
+## Key Claims
+- 要点1
+- 要点2
+
+## Key Quotes
+> "引用内容"
+
+## Connections
+- [[EntityName]] — 关系
+- [[ConceptName]] — 关系
+
+## Contradictions
+- 与 [[OtherPage]] 矛盾：原因
+
+## Tree Node Format
+{
+  "topic_path": ["ParentTopic", "ChildTopic"],
+  "description": "节点描述",
+  "keywords": ["keyword1", "keyword2"],
+  "sections": [{"heading": "§标题", "lines": "1-50", "summary": "章节摘要"}]
+}
+"""
 
 
 def resolve_kb_path(kb_name: str | None) -> tuple[Path, Path, Path, Path]:
@@ -270,10 +310,10 @@ def build_wiki_context() -> str:
         parts.append(f"## wiki/index.md\n{read_file(INDEX_FILE)}")
     if OVERVIEW_FILE.exists():
         parts.append(f"## wiki/overview.md\n{read_file(OVERVIEW_FILE)}")
-    # Include a few recent source pages for contradiction checking
+    # Include recent source pages for contradiction checking (reduced from 5 to 2)
     sources_dir = WIKI_DIR / "sources"
     if sources_dir.exists():
-        recent = sorted(sources_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:5]
+        recent = sorted(sources_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:2]
         for p in recent:
             parts.append(f"## {p.relative_to(REPO_ROOT)}\n{p.read_text()}")
     return "\n\n---\n\n".join(parts)
@@ -453,7 +493,6 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
     content_to_ingest = _build_content_with_images(source, source_content, source_is_dir)
 
     wiki_context = build_wiki_context()
-    schema = read_file(SCHEMA_FILE)
 
     INGEST_SCHEMA = {
         "type": "object",

@@ -56,7 +56,7 @@ knowledge_bases/<name>/
 3. Update `meta.json`:
 ```json
 {
-  "alias_map": { "<name>": "<alias>" },
+  "alias_map": { "<name>": {"alias": "<alias>", "description": ""} },
   "default": "<name>"
 }
 ```

@@ -1,5 +1,34 @@
 {
   "name": "root",
   "description": "Knowledge base: test_kb",
-  "children": []
+  "children": [
+    {
+      "name": "Testing",
+      "description": "Test paper with an image and Section 1",
+      "keywords": [
+        "test",
+        "testing",
+        "example"
+      ],
+      "type": "topic",
+      "children": [
+        {
+          "name": "raw/test_kb.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Overview",
+              "lines": "1-7",
+              "summary": "Test paper header and image reference (figure 1)"
+            },
+            {
+              "heading": "§ Section 1",
+              "lines": "8-11",
+              "summary": "Section 1 containing some placeholder content"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

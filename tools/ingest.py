@@ -114,19 +114,36 @@ def save_manifest(kb_path: Path, manifest: dict):
     manifest_file.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
 
 
-def mark_ingested(kb_path: Path, source: Path, source_hash: str, slug: str, title: str):
-    """Record this source as successfully ingested. Uses relative path as key to avoid name collisions."""
+def _find_main_md(folder: Path) -> Path | None:
+    """Find the main .md file in a folder. Prefers index.md, otherwise first .md found."""
+    md_files = list(folder.glob("*.md"))
+    if not md_files:
+        return None
+    # Prefer index.md
+    for f in md_files:
+        if f.name.lower() == "index.md":
+            return f
+    return md_files[0]
+
+
+def _copy_dir(src: Path, dst: Path):
+    """Recursively copy a directory, preserving structure."""
+    dst.mkdir(parents=True, exist_ok=True)
+    for item in src.rglob("*"):
+        if item.is_file():
+            rel = item.relative_to(src)
+            dest_file = dst / rel
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, dest_file)
+
+
+def mark_ingested(kb_path: Path, manifest_key: str, source_hash: str, slug: str, title: str):
+    """Record this source as successfully ingested."""
     manifest = get_manifest(kb_path)
-    # Use relative path from kb root as key (e.g. "docs/rag.md"), not just filename
-    try:
-        rel_path = str(source.resolve().relative_to(kb_path.resolve()))
-    except ValueError:
-        rel_path = source.name
-    manifest[rel_path] = {
+    manifest[manifest_key] = {
         "hash": source_hash,
         "slug": slug,
         "title": title,
-        "source_name": source.name
     }
     save_manifest(kb_path, manifest)
 
@@ -264,30 +281,52 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
         print(f"Error: file not found: {source_path}")
         sys.exit(1)
 
-    source_content = source.read_text(encoding="utf-8")
-    source_hash = sha256(source_content)
     today = date.today().isoformat()
+
+    # --- Determine if source is a file or directory ---
+    if source.is_dir():
+        # Directory: copy entire tree, find main .md file
+        main_md = _find_main_md(source)
+        if not main_md:
+            print(f"Error: no .md file found in directory: {source_path}")
+            sys.exit(1)
+        source_content = main_md.read_text(encoding="utf-8")
+        source_hash = sha256(source_content)
+        # Use folder name as manifest key
+        manifest_key = source.name
+        slug = source.name
+        display_name = f"{source.name}/ (folder)"
+    else:
+        # Single file
+        main_md = source
+        source_content = source.read_text(encoding="utf-8")
+        source_hash = sha256(source_content)
+        manifest_key = source.name
+        slug = source.stem
+        display_name = source.name
 
     # Idempotency check — skip if this exact source was already ingested
     manifest = get_manifest(kb_path)
-    try:
-        rel_path = str(source.resolve().relative_to(kb_path.resolve()))
-    except ValueError:
-        rel_path = source.name
-    entry = manifest.get(rel_path)
+    entry = manifest.get(manifest_key)
     if entry is not None and entry.get("hash") == source_hash:
-        print(f"\nSkipping: {source.name}  (hash: {source_hash})")
+        print(f"\nSkipping: {display_name}  (hash: {source_hash})")
         print(f"  Already ingested as '{entry['slug']}' — source unchanged.")
         return
 
-    # Copy source to raw/ if it's not already there
-    dest_in_raw = raw_dir / source.name
-    if not dest_in_raw.exists() or dest_in_raw.read_text() != source.read_text():
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, dest_in_raw)
-        print(f"  copied to: {dest_in_raw.relative_to(REPO_ROOT)}")
+    # Copy source to raw/ — file or directory
+    if source.is_dir():
+        # Copy entire directory structure
+        dest_in_raw = raw_dir / source.name
+        _copy_dir(source, dest_in_raw)
+        print(f"  copied folder to: knowledge_bases/{kb_path.name}/raw/{source.name}/")
+    else:
+        dest_in_raw = raw_dir / source.name
+        if not dest_in_raw.exists() or dest_in_raw.read_text() != source.read_text():
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, dest_in_raw)
+            print(f"  copied to: {dest_in_raw.relative_to(REPO_ROOT)}")
 
-    print(f"\nIngesting: {source.name}  (hash: {source_hash})")
+    print(f"\nIngesting: {display_name}  (hash: {source_hash})")
 
     wiki_context = build_wiki_context()
     schema = read_file(SCHEMA_FILE)
@@ -393,7 +432,7 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
         update_tree_index(tree_node, kb_path)
 
     # Record successful ingestion for idempotency
-    mark_ingested(kb_path, source, source_hash, slug, data["title"])
+    mark_ingested(kb_path, manifest_key, source_hash, slug, data["title"])
 
     print(f"\nDone. Ingested: {data['title']}")
 

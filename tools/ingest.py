@@ -530,8 +530,8 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
 
     prompt = f"""You are maintaining an LLM Wiki. Process this source document and integrate its knowledge into the wiki.
 
-Schema and conventions:
-{schema}
+## Wiki Format
+{INGEST_FORMAT}
 
 Current wiki state (index + recent pages):
 {wiki_context if wiki_context else "(wiki is empty — this is the first source)"}
@@ -545,17 +545,7 @@ If the source contains image references (e.g. ![fig](path/to/image.png)), use th
 
 Today's date: {today}
 
-Return a JSON object with these fields:
-- title: Human-readable title for this source
-- slug: kebab-case slug for filename (used for wiki/sources/<slug>.md)
-- source_page: full markdown for wiki/sources/<slug>.md following the schema format
-- index_entry: line to add to wiki/index.md (e.g. "- [Title](sources/slug.md) — one-line summary")
-- overview_update: full updated overview.md content, or null if no update needed
-- entity_pages: array of {{"path": "entities/Name.md", "content": "markdown content"}}
-- concept_pages: array of {{"path": "concepts/Name.md", "content": "markdown content"}}
-- contradictions: array of contradiction descriptions, or empty array
-- log_entry: log entry text
-- tree_node: {{"topic_path": ["ParentTopic"], "description": "...", "keywords": [...], "sections": [{{"heading": "§ Title", "lines": "start-end", "summary": "..."}}]}}
+Return JSON with: title, slug, source_page, index_entry, overview_update, entity_pages, concept_pages, contradictions, log_entry, tree_node.
 """
 
     # --- Check if file needs splitting ---
@@ -571,8 +561,8 @@ Return a JSON object with these fields:
 This is PART {i} of {len(split_sections)} from this document.
 The document's title is the overall title (use from first part for title/slug).
 
-Schema and conventions:
-{schema}
+## Wiki Format
+{INGEST_FORMAT}
 
 Current wiki state (index + recent pages):
 {wiki_context if wiki_context else "(wiki is empty — this is the first source)"}
@@ -589,17 +579,7 @@ If this section contains image references (e.g. ![fig](path/to/image.png)), use 
 
 Today's date: {today}
 
-Return a JSON object with these fields:
-- title: The overall document title (use the same title for all parts)
-- slug: kebab-case slug (same for all parts)
-- source_page: summary for THIS SECTION ONLY (will be combined with other sections)
-- index_entry: summary line (same for all parts)
-- overview_update: null (only set by first part)
-- entity_pages: entities mentioned in THIS section only
-- concept_pages: concepts mentioned in THIS section only
-- contradictions: contradictions involving THIS section only
-- log_entry: empty string (only first part provides log entry)
-- tree_node: sections from THIS part only (topic_path/description/keywords from first part)
+Return JSON with: title, slug, source_page, index_entry, overview_update, entity_pages, concept_pages, contradictions, log_entry, tree_node.
 """
             try:
                 result = call_claude(sec_prompt, INGEST_SCHEMA, kb_path.name)

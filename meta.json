@@ -3,7 +3,7 @@
     "ai_research": "",
     "test_kb": {
       "alias": "Test Knowledge Base",
-      "description": "This knowledge base contains test documents and research methodology notes, primarily used for workflow validation and study design documentation. It includes three sources covering testing papers and structured approaches to conducting research. Note that two sources share the same title \"Test Paper,\" so verifying whether they are duplicates or intentional separate entries may be worthwhile."
+      "description": "A test knowledge base containing six source documents focused on research and large-scale document testing. The main topics include academic research surveys with a standard 9-section structure, research methodology notes, and large multi-part test documents spanning thousands of sections. The content is primarily placeholder/test material, including a ~56,000-line repeated academic paper block and a 5,001-part test document."
     },
     "github_readmes": {
       "alias": "GitHub README测试",

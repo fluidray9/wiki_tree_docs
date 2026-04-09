@@ -72,7 +72,7 @@ Each skill file (in `skills/`) describes both the script command to run and the 
 ## Directory Layout
 
 ```
-llm-tree-agent/
+wiki_tree_docs/
 ├── meta.json              # Alias map + default knowledge base
 │                         # {"alias_map": {"my_kb": "My Knowledge Base"}, "default": "my_kb"}
 ├── knowledge_bases/       # Parent directory for all knowledge bases

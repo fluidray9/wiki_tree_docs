@@ -1,78 +1,162 @@
-# LLM Wiki Agent — Schema & Workflow Instructions
+# LLM Tree Index Agent — Schema & Workflow Instructions
 
-This wiki is maintained entirely by Claude Code. No API key or Python scripts needed — just open this repo in Claude Code and talk to it.
+A multi-knowledge-base skill for AI coding agents. Each knowledge base has its own source documents, wiki index, and tree index. No API key or Python scripts needed — just open this repo in Claude Code.
 
-## Slash Commands (Claude Code)
+## Key Concepts
+
+- **Knowledge Base**: An isolated workspace under `knowledge_bases/<name>/` with its own raw/, wiki/, and tree/
+- **Wiki Index**: Structured markdown pages with cross-references (inherits from wiki-agent)
+- **Tree Index**: Hierarchical JSON structure for navigable retrieval with section-level granularity
+- **meta.json**: Located at repo root, stores alias mapping and current default knowledge base
+
+## Slash Commands
 
 | Command | What to say |
 |---|---|
-| `/wiki-ingest` | `ingest raw/my-article.md` |
-| `/wiki-query` | `query: what are the main themes?` |
-| `/wiki-lint` | `lint the wiki` |
-| `/wiki-graph` | `build the knowledge graph` |
+| `/tree-init` | `init my_kb` |
+| `/tree-list` | `list all knowledge bases` |
+| `/tree-use` | `use my_kb` |
+| `/tree-ingest` | `ingest raw/my-article.md --kb my_kb` |
+| `/tree-query` | `query: what are the main themes? --kb my_kb` |
+| `/wiki-query` | `query: how does X work? --kb my_kb` |
+| `/tree-lint` | `lint the tree index --kb my_kb` |
+| `/tree-graph` | `build the knowledge graph --kb my_kb` |
 
-Or just describe what you want in plain English:
-- *"Ingest this file: raw/papers/attention-is-all-you-need.md"*
-- *"What does the wiki say about transformer models?"*
-- *"Check the wiki for orphan pages and contradictions"*
-- *"Build the graph and show me what's connected to RAG"*
-
-Claude Code reads this file automatically and follows the workflows below.
+Or describe in plain English. Claude Code reads this file automatically.
 
 ---
 
 ## Directory Layout
 
 ```
-raw/          # Immutable source documents — never modify these
-wiki/         # Claude owns this layer entirely
-  index.md    # Catalog of all pages — update on every ingest
-  log.md      # Append-only chronological record
-  overview.md # Living synthesis across all sources
-  sources/    # One summary page per source document
-  entities/   # People, companies, projects, products
-  concepts/   # Ideas, frameworks, methods, theories
-  syntheses/  # Saved query answers
-graph/        # Auto-generated graph data
-tools/        # Optional standalone Python scripts (require ANTHROPIC_API_KEY)
+llm-tree-agent/
+├── meta.json              # Alias map + default knowledge base
+│                         # {"alias_map": {"my_kb": "My Knowledge Base"}, "default": "my_kb"}
+├── knowledge_bases/       # Parent directory for all knowledge bases
+│   ├── my_kb/             # A knowledge base
+│   │   ├── raw/           # Immutable source documents — never modify these
+│   │   ├── wiki/           # Wiki index (managed entirely by agent)
+│   │   │   ├── index.md    # Catalog — update on every ingest
+│   │   │   ├── log.md      # Append-only chronological record
+│   │   │   ├── overview.md  # Living synthesis across all sources
+│   │   │   ├── sources/    # One summary page per source document
+│   │   │   ├── entities/   # People, companies, projects, products
+│   │   │   ├── concepts/   # Ideas, frameworks, methods, theories
+│   │   │   └── syntheses/  # Saved query answers
+│   │   └── tree/           # Tree index
+│   │       └── index.json  # Hierarchical index structure
+│   └── another_kb/         # Another knowledge base
+│       ├── raw/
+│       ├── wiki/
+│       └── tree/
+└── skills/                 # Sub-skill definitions
+    ├── ingest.md           # Ingest workflow (generates both wiki + tree)
+    ├── wiki-retrieval.md   # Wiki query workflow
+    └── tree-retrieval.md   # Tree query workflow
 ```
 
 ---
 
-## Page Format
+## Meta.json Format
 
-Every wiki page uses this frontmatter:
-
-```yaml
----
-title: "Page Title"
-type: source | entity | concept | synthesis
-tags: []
-sources: []       # list of source slugs that inform this page
-last_updated: YYYY-MM-DD
----
+```json
+{
+  "alias_map": {
+    "ai_research": "AI研究",
+    "web_dev": "前端开发"
+  },
+  "default": "ai_research"
+}
 ```
 
-Use `[[PageName]]` wikilinks to link to other wiki pages.
+- `alias_map`: Maps knowledge base folder names to human-readable aliases
+- `default`: The currently selected default knowledge base name, or `null` if none set
+
+---
+
+## Knowledge Base Management
+
+### `/tree-init <name>`
+
+Creates a new knowledge base with the given folder name (must be English, kebab-case recommended).
+
+Steps:
+1. Create `knowledge_bases/<name>/`
+2. Create `knowledge_bases/<name>/raw/`
+3. Create `knowledge_bases/<name>/wiki/` with initial `index.md`, `overview.md`, `log.md`
+4. Create `knowledge_bases/<name>/tree/index.json` with initial empty tree
+5. Add entry to `meta.json`'s `alias_map` (key = name, value = "")
+6. If no default is set, set this as the default
+
+### `/tree-list`
+
+Reads `meta.json` and lists all knowledge bases with their aliases.
+
+Output format:
+```
+Available Knowledge Bases:
+- ai_research (AI研究)
+- web_dev (前端开发)
+- my_kb (no alias)
+
+Default: ai_research
+```
+
+### `/tree-use <name>`
+
+Sets the default knowledge base in `meta.json`.
+
+Steps:
+1. Verify `knowledge_bases/<name>/` exists
+2. Update `meta.json`'s `default` field to `<name>`
+
+After this, commands can omit `--kb` and will use this default.
+
+---
+
+## Resolving Knowledge Base Name
+
+Before any operation that needs a knowledge base:
+
+1. If `--kb <name>` is provided → use `<name>`
+2. Else if `meta.json`'s `default` is not null → use `default`
+3. Else → fail with: "No knowledge base specified and no default set. Use --kb <name> to specify."
 
 ---
 
 ## Ingest Workflow
 
-Triggered by: *"ingest <file>"* or `/wiki-ingest`
+Triggered by: `/tree-ingest <file> --kb <name>` or "ingest <file> into <name>"
 
-Steps (in order):
-1. Read the source document fully using the Read tool
+Steps (all within the knowledge base's directory):
+1. Read the source document fully
 2. Read `wiki/index.md` and `wiki/overview.md` for current wiki context
-3. Write `wiki/sources/<slug>.md` — use the source page format below
-4. Update `wiki/index.md` — add entry under Sources section
-5. Update `wiki/overview.md` — revise synthesis if warranted
-6. Update/create entity pages for key people, companies, projects mentioned
-7. Update/create concept pages for key ideas and frameworks discussed
-8. Flag any contradictions with existing wiki content
-9. Append to `wiki/log.md`: `## [YYYY-MM-DD] ingest | <Title>`
+3. Read `tree/index.json` for current tree structure
+4. **Generate wiki index**:
+   - Write `wiki/sources/<slug>.md`
+   - Update `wiki/index.md`
+   - Update `wiki/overview.md`
+   - Update/create entity pages in `wiki/entities/`
+   - Update/create concept pages in `wiki/concepts/`
+   - Flag contradictions
+   - Append to `wiki/log.md`
+5. **Generate tree index** (simultaneously, not sequentially):
+   - Analyze document topics → classify into tree nodes
+   - For each section, generate section info (heading, line range, summary)
+   - Merge new nodes into `tree/index.json` (do NOT rebuild existing structure)
+6. **If this is the first document**, the tree node may be a new top-level topic
 
-### Source Page Format
+### Tree Node Classification Logic
+
+When classifying a new document into the tree:
+1. Read `tree/index.json`
+2. Identify the document's main topic and keywords
+3. Traverse existing tree nodes, match by `keywords` or `description`
+4. If a matching topic node exists → add document as a `leaf` under its `children`
+5. If no match → create a new topic node (may become a new top-level node)
+6. Prefer existing nodes over creating new ones; avoid excessive tree depth
+
+### Source Page Format (wiki/sources/)
 
 ```markdown
 ---
@@ -101,65 +185,137 @@ source_file: raw/...
 - Contradicts [[OtherPage]] on: ...
 ```
 
+### Tree index.json Node Format
+
+Each node has:
+- `name`: Node name (folder name for topics, file path for leaves)
+- `description`: What this node represents
+- `keywords`: For topic matching during query
+- `type`: "topic" (has children) or "leaf" (source document)
+- `children`: Array of child nodes (for topic nodes only)
+- `sections`: Array of section info (for leaf nodes only)
+
+```json
+{
+  "name": "root",
+  "description": "Knowledge base root",
+  "children": [
+    {
+      "name": "AI",
+      "description": "Artificial intelligence",
+      "keywords": ["artificial intelligence", "machine learning"],
+      "type": "topic",
+      "children": [
+        {
+          "name": "LLM",
+          "description": "Large language models",
+          "keywords": ["language model", "transformer", "GPT"],
+          "type": "topic",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+A leaf node:
+```json
+{
+  "name": "raw/papers/rag-survey.md",
+  "type": "leaf",
+  "sections": [
+    {
+      "heading": "§ Overview",
+      "lines": "45-120",
+      "summary": "RAG基本原理：通过检索增强语言模型的生成能力..."
+    }
+  ]
+}
+```
+
 ---
 
-## Query Workflow
+## Tree Query Workflow
 
-Triggered by: *"query: <question>"* or `/wiki-query`
+Triggered by: `/tree-query "<question>" --kb <name>` or "query the tree about..."
 
 Steps:
-1. Read `wiki/index.md` to identify relevant pages
-2. Read those pages with the Read tool
-3. Synthesize an answer with inline citations as `[[PageName]]` wikilinks
-4. Ask the user if they want the answer filed as `wiki/syntheses/<slug>.md`
+1. Resolve knowledge base (fail if none specified and no default)
+2. Read `tree/index.json`
+3. Match query keywords against node `keywords` and `sections[].summary` using DFS
+4. Identify relevant leaf nodes
+5. Read source document fragments using `sections[].lines` for precise line ranges
+6. Generate answer with inline citations in format:
+
+```
+回答：<answer text>
+
+来源：
+[1] <knowledge_base>/raw/<filename> § <heading> 行 <line_start>-<line_end>
+> "<quoted text>"
+
+[2] ...
+```
+
+---
+
+## Wiki Query Workflow
+
+Triggered by: `/wiki-query "<question>" --kb <name>` or "what does the wiki say about..."
+
+Steps:
+1. Resolve knowledge base (fail if none specified and no default)
+2. Read `wiki/index.md` to identify relevant pages
+3. Read those pages
+4. Synthesize answer with citations as `[[PageName]]` wikilinks
+5. Ask if answer should be filed to `wiki/syntheses/<slug>.md`
+
+Output format:
+```
+回答：<answer text>
+
+来源：
+[1] <knowledge_base>/wiki/sources/<filename>
+[2] <knowledge_base>/wiki/concepts/<ConceptName>.md
+```
 
 ---
 
 ## Lint Workflow
 
-Triggered by: *"lint the wiki"* or `/wiki-lint`
+Triggered by: `/tree-lint --kb <name>` or "lint the tree index"
 
-Use Grep and Read tools to check for:
-- **Orphan pages** — wiki pages with no inbound `[[links]]` from other pages
-- **Broken links** — `[[WikiLinks]]` pointing to pages that don't exist
-- **Contradictions** — claims that conflict across pages
-- **Stale summaries** — pages not updated after newer sources
-- **Missing entity pages** — entities mentioned in 3+ pages but lacking their own page
-- **Data gaps** — questions the wiki can't answer; suggest new sources
-
-Output a lint report and ask if the user wants it saved to `wiki/lint-report.md`.
+Checks:
+- **Orphan nodes**: Tree nodes with no children (for topic nodes) or unreachable leaves
+- **Broken leaves**: Leaf nodes pointing to non-existent source files
+- **Empty topics**: Topic nodes with no meaningful content
+- **Missing summaries**: Sections without proper summaries
 
 ---
 
 ## Graph Workflow
 
-Triggered by: *"build the knowledge graph"* or `/wiki-graph`
+Triggered by: `/tree-graph --kb <name>` or "build the tree graph"
 
-When the user asks to build the graph, run `tools/build_graph.py` which:
-- Pass 1: Parses all `[[wikilinks]]` → deterministic `EXTRACTED` edges
-- Pass 2: Infers implicit relationships → `INFERRED` edges with confidence scores
-- Runs Louvain community detection
-- Outputs `graph/graph.json` + `graph/graph.html`
-
-If the user doesn't have Python/dependencies set up, instead generate the graph data manually:
-1. Use Grep to find all `[[wikilinks]]` across wiki pages
-2. Build a node/edge list
-3. Write `graph/graph.json` directly
-4. Write `graph/graph.html` using the vis.js template
+For tree index, generates a hierarchical visualization. (Future: could use tools/build_graph.py pattern for tree structure)
 
 ---
 
 ## Naming Conventions
 
+- Knowledge base folders: `kebab-case` (e.g., `ai-research`, `web-dev`)
 - Source slugs: `kebab-case` matching source filename
-- Entity pages: `TitleCase.md` (e.g. `OpenAI.md`, `SamAltman.md`)
-- Concept pages: `TitleCase.md` (e.g. `ReinforcementLearning.md`, `RAG.md`)
-- Source pages: `kebab-case.md`
+- Entity pages: `TitleCase.md`
+- Concept pages: `TitleCase.md`
+- Tree node names: Topic nodes use `Title-Case`, leaf nodes use file paths
 
-## Index Format
+---
+
+## Index Format (wiki/index.md)
 
 ```markdown
-# Wiki Index
+# Wiki Index — <knowledge_base_name>
 
 ## Overview
 - [Overview](overview.md) — living synthesis
@@ -177,12 +333,10 @@ If the user doesn't have Python/dependencies set up, instead generate the graph 
 - [Analysis Title](syntheses/slug.md) — what question it answers
 ```
 
-## Log Format
+---
 
-Each entry starts with `## [YYYY-MM-DD] <operation> | <title>` so it's grep-parseable:
+## Log Format (wiki/log.md)
 
-```
-grep "^## \[" wiki/log.md | tail -10
-```
+Each entry: `## [YYYY-MM-DD] <operation> | <title>`
 
-Operations: `ingest`, `query`, `lint`, `graph`
+Operations: `init`, `ingest`, `query`, `lint`, `graph`

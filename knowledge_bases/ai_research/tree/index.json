@@ -1,0 +1,56 @@
+{
+  "name": "root",
+  "description": "Knowledge base root",
+  "children": [
+    {
+      "name": "AI",
+      "description": "人工智能",
+      "keywords": ["artificial intelligence", "AI", "machine learning"],
+      "type": "topic",
+      "children": [
+        {
+          "name": "LLM",
+          "description": "大语言模型",
+          "keywords": ["language model", "LLM", "transformer", "GPT"],
+          "type": "topic",
+          "children": [
+            {
+              "name": "RAG",
+              "description": "检索增强生成",
+              "type": "topic",
+              "keywords": ["Retrieval-Augmented Generation", "RAG", "知识检索", "检索增强"],
+              "children": [
+                {
+                  "name": "raw/rag-intro.md",
+                  "type": "leaf",
+                  "sections": [
+                    {
+                      "heading": "§ 概述",
+                      "lines": "3-7",
+                      "summary": "RAG（Retrieval-Augmented Generation）是一种将检索与生成结合的技术，通过从外部知识库中检索相关信息来增强语言模型的生成能力"
+                    },
+                    {
+                      "heading": "§ 原理",
+                      "lines": "9-14",
+                      "summary": "RAG 系统主要由检索器、生成器、增强器三个组件构成，从向量数据库中检索相关文档并生成答案"
+                    },
+                    {
+                      "heading": "§ 应用场景",
+                      "lines": "16-19",
+                      "summary": "RAG 广泛应用于问答系统、文档摘要生成、对话系统等场景"
+                    },
+                    {
+                      "heading": "§ 优缺点",
+                      "lines": "21-25",
+                      "summary": "RAG 优点：可解释性强、实时性好、易于更新知识库；缺点：依赖检索质量、延迟较高"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

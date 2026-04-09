@@ -42,8 +42,26 @@ def delete_kb(name: str, force: bool = False):
     kb_path = REPO_ROOT / "knowledge_bases" / name
 
     if not kb_path.exists():
-        print(f"Error: knowledge base not found: {name}")
-        sys.exit(1)
+        # Folder already gone — just clean up meta.json orphaned entry
+        if META_FILE.exists():
+            meta = json.loads(META_FILE.read_text())
+            changed = False
+            if name in meta.get("alias_map", {}):
+                del meta["alias_map"][name]
+                changed = True
+            if meta.get("default") == name:
+                remaining = list(meta.get("alias_map", {}).keys())
+                meta["default"] = remaining[0] if remaining else None
+            if changed:
+                write_file(META_FILE, json.dumps(meta, indent=2, ensure_ascii=False))
+                print(f"  cleaned: meta.json (no folder found for '{name}')")
+            else:
+                print(f"Error: knowledge base '{name}' not found in meta.json")
+                sys.exit(1)
+        else:
+            print(f"Error: knowledge base not found: {name}")
+            sys.exit(1)
+        return
 
     # Confirm unless --force
     if not force:

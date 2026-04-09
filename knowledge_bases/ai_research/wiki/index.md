@@ -4,6 +4,8 @@
 - [Overview](overview.md) — living synthesis
 
 ## Sources
+- [New Test Paper](sources/new-test-paper.md) — 测试文档，含图片引用 diagram 与 Overview/Details 章节
+- [Test Doc](sources/test-doc.md) — 简单的测试文档，用于验证图片引用功能
 - [Transformer 模型介绍](sources/transformer-intro-v3.md) — Transformer 是一种基于自注意力机制的神经网络架构
 - [RAG 介绍](sources/rag-intro-v3.md) — RAG技术概述，包含检索器、生成器、增强器三组件及优缺点
 - [RAG 介绍（原理详解）](sources/rag-detailed-principles.md) — RAG技术原理详解，包含检索器、生成器、增强器三组件

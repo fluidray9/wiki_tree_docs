@@ -3,5 +3,10 @@
     "hash": "817fc7079ab9a347",
     "slug": "test-paper-2",
     "title": "Test Paper"
+  },
+  "new-test-doc.md": {
+    "hash": "71ef4723ffb8ff59",
+    "slug": "new-test-doc",
+    "title": "Research Notes"
   }
 }

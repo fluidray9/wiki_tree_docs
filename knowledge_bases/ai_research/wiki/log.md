@@ -1,3 +1,14 @@
+## [2026-04-09] ingest | New Test Paper
+- Added source: raw/test_new/ (new-test-paper.md)
+- Placed under existing Testing topic node in tree
+- Key content: 测试文档，含图片 diagram 引用、Overview 章节与 Details 章节
+- 注意：此文档与现有 test-doc.md 功能相似（均用于图片引用测试），建议后续清理重复测试文档。
+
+## [2026-04-09] ingest | Test Doc
+- Added source: raw/test_img/test_img (test-doc.md)
+- Created top-level Testing topic node in tree
+- Key content: 测试文档，含图片引用 fig1 和示例章节
+
 ## [2026-04-09] graph | Knowledge graph rebuilt
 
 21 nodes, 78 edges (78 extracted, 0 inferred).
@@ -102,3 +113,8 @@ Ran lint. See lint-report.md for details.
 - Added source: raw/rag-intro.md
 - Created concept: RAG
 - Updated overview
+
+## [2026-04-09] ingest | Test Doc
+- Added source: raw/test_img/test_img (test-doc.md)
+- Created top-level Testing topic node in tree
+- Key content: 测试文档，含图片引用 fig1 和示例章节

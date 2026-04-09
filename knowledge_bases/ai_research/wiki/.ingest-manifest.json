@@ -15,5 +15,15 @@
     "slug": "transformer-intro-v3",
     "title": "Transformer 模型介绍",
     "source_name": "test_source.md"
+  },
+  "test_img": {
+    "hash": "3926fa75b3b14576",
+    "slug": "test-doc",
+    "title": "Test Doc"
+  },
+  "test_new": {
+    "hash": "651e0db3ed12f1c4",
+    "slug": "new-test-paper",
+    "title": "New Test Paper"
   }
 }

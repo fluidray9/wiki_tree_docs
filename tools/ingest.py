@@ -25,7 +25,6 @@ import argparse
 from pathlib import Path
 from datetime import date
 
-import anthropic
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
@@ -135,6 +134,58 @@ def _copy_dir(src: Path, dst: Path):
             dest_file = dst / rel
             dest_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(item, dest_file)
+
+
+def _build_content_with_images(source: Path, content: str, is_dir: bool) -> str:
+    """Return content as-is. Claude's Read tool handles images natively via --add-dir."""
+    return content
+
+
+def call_claude(prompt: str, output_schema: dict, kb_name: str) -> dict:
+    """Call claude -p CLI for structured JSON output. Returns parsed JSON result."""
+    import subprocess
+    import json as _json
+
+    schema_json = _json.dumps(output_schema)
+
+    cmd = [
+        "claude", "-p",
+        "--dangerously-skip-permissions",
+        "--bare",
+        "--output-format", "json",
+        f"--json-schema", schema_json,
+        "--add-dir", ".",
+        "--allowedTools", "Read",
+        "--no-session-persistence",
+        prompt
+    ]
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        cwd=str(REPO_ROOT)
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(f"claude CLI failed: {result.stderr}")
+
+    try:
+        output = _json.loads(result.stdout)
+        structured = output.get("structured_output")
+        if structured:
+            return structured
+        # Fallback: try parsing result field
+        raw_result = output.get("result", "")
+        # Try to extract JSON from result text
+        import re
+        match = re.search(r'\{[\s\S]*\}', raw_result)
+        if match:
+            return _json.loads(match.group())
+        raise ValueError(f"No structured output in claude response: {raw_result[:200]}")
+    except (_json.JSONDecodeError, ValueError) as e:
+        raise RuntimeError(f"Failed to parse claude JSON output: {e}\nRaw: {result.stdout[:500]}")
 
 
 def mark_ingested(kb_path: Path, manifest_key: str, source_hash: str, slug: str, title: str):
@@ -333,13 +384,45 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
 
     print(f"\nIngesting: {display_name}  (hash: {source_hash})")
 
+    # --- Build content with embedded images ---
+    content_to_ingest = _build_content_with_images(source, source_content, source_is_dir)
+
     wiki_context = build_wiki_context()
     schema = read_file(SCHEMA_FILE)
 
-    client = anthropic.Anthropic(
-        base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
-        api_key=os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"),
-    )
+    INGEST_SCHEMA = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "slug": {"type": "string"},
+            "source_page": {"type": "string"},
+            "index_entry": {"type": "string"},
+            "overview_update": {"type": ["string", "null"]},
+            "entity_pages": {
+                "type": "array",
+                "items": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}
+            },
+            "concept_pages": {
+                "type": "array",
+                "items": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}
+            },
+            "contradictions": {"type": "array", "items": {"type": "string"}},
+            "log_entry": {"type": "string"},
+            "tree_node": {
+                "type": "object",
+                "properties": {
+                    "topic_path": {"type": "array", "items": {"type": "string"}},
+                    "description": {"type": "string"},
+                    "keywords": {"type": "array", "items": {"type": "string"}},
+                    "sections": {
+                        "type": "array",
+                        "items": {"type": "object", "properties": {"heading": {"type": "string"}, "lines": {"type": "string"}, "summary": {"type": "string"}}}
+                    }
+                }
+            }
+        },
+        "required": ["title", "slug", "source_page", "index_entry", "entity_pages", "concept_pages", "contradictions", "log_entry", "tree_node"]
+    }
 
     prompt = f"""You are maintaining an LLM Wiki. Process this source document and integrate its knowledge into the wiki.
 
@@ -351,55 +434,31 @@ Current wiki state (index + recent pages):
 
 New source to ingest (file: {source.relative_to(REPO_ROOT) if source.is_relative_to(REPO_ROOT) else source.name}):
 === SOURCE START ===
-{source_content}
+{content_to_ingest}
 === SOURCE END ===
+
+If the source contains image references (e.g. ![fig](path/to/image.png)), use the Read tool to view those images — Claude's Read tool handles images natively. The images are in the same directory tree you can access via --add-dir .
 
 Today's date: {today}
 
-Return ONLY a valid JSON object with these fields (no markdown fences, no prose outside the JSON):
-{{
-  "title": "Human-readable title for this source",
-  "slug": "kebab-case-slug-for-filename",
-  "source_page": "full markdown content for wiki/sources/<slug>.md — use the source page format from the schema",
-  "index_entry": "- [Title](sources/slug.md) — one-line summary",
-  "overview_update": "full updated content for wiki/overview.md, or null if no update needed",
-  "entity_pages": [
-    {{"path": "entities/EntityName.md", "content": "full markdown content"}}
-  ],
-  "concept_pages": [
-    {{"path": "concepts/ConceptName.md", "content": "full markdown content"}}
-  ],
-  "contradictions": ["describe any contradiction with existing wiki content, or empty list"],
-  "log_entry": "## [{today}] ingest | <title>\\n\\nAdded source. Key claims: ...",
-  "tree_node": {{
-    "topic_path": ["ParentTopic1", "ParentTopic2"],
-    "description": "Brief description of what this document is about",
-    "keywords": ["keyword1", "keyword2", "keyword3"],
-    "sections": [
-      {{
-        "heading": "§ Section Title",
-        "lines": "start-end",
-        "summary": "Brief summary of this section's content"
-      }}
-    ]
-  }}
-}}
+Return a JSON object with these fields:
+- title: Human-readable title for this source
+- slug: kebab-case slug for filename (used for wiki/sources/<slug>.md)
+- source_page: full markdown for wiki/sources/<slug>.md following the schema format
+- index_entry: line to add to wiki/index.md (e.g. "- [Title](sources/slug.md) — one-line summary")
+- overview_update: full updated overview.md content, or null if no update needed
+- entity_pages: array of {{"path": "entities/Name.md", "content": "markdown content"}}
+- concept_pages: array of {{"path": "concepts/Name.md", "content": "markdown content"}}
+- contradictions: array of contradiction descriptions, or empty array
+- log_entry: log entry text
+- tree_node: {{"topic_path": ["ParentTopic"], "description": "...", "keywords": [...], "sections": [{{"heading": "§ Title", "lines": "start-end", "summary": "..."}}]}}
 """
 
-    print("  calling Claude API...")
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=8192,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    raw = extract_text_from_content(response.content)
+    print("  calling Claude...")
     try:
-        data = parse_json_from_response(raw)
-    except (ValueError, json.JSONDecodeError) as e:
-        print(f"Error parsing API response: {e}")
-        print("Raw response saved to /tmp/ingest_debug.txt")
-        Path("/tmp/ingest_debug.txt").write_text(raw)
+        data = call_claude(prompt, INGEST_SCHEMA, kb_path.name)
+    except RuntimeError as e:
+        print(f"Error: {e}")
         sys.exit(1)
 
     # Write source page

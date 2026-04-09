@@ -45,6 +45,40 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Research",
+      "description": "Research methodology documents and notes",
+      "keywords": [
+        "research",
+        "methodology",
+        "research methodology",
+        "study design"
+      ],
+      "type": "topic",
+      "children": [
+        {
+          "name": "raw/test_kb.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Overview",
+              "lines": "1-5",
+              "summary": "Document header with image reference (figures/overview.png) and Overview section introducing the research methodology topic"
+            },
+            {
+              "heading": "§ Section 1",
+              "lines": "6-8",
+              "summary": "Content about methodology with an image reference"
+            },
+            {
+              "heading": "§ Section 2",
+              "lines": "9-11",
+              "summary": "Another section with different content"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

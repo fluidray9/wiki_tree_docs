@@ -265,6 +265,68 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Testing",
+      "description": "测试文档与图片引用验证",
+      "keywords": [
+        "test",
+        "testing",
+        "image",
+        "figure",
+        "测试"
+      ],
+      "type": "topic",
+      "children": [
+        {
+          "name": "raw/test_img/test_img",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Overview",
+              "lines": "1-2",
+              "summary": "文档首句介绍图片引用功能：Some text with an image."
+            },
+            {
+              "heading": "§ Section",
+              "lines": "4-5",
+              "summary": "示例章节，包含简单文本内容 Content."
+            }
+          ]
+        },
+        {
+          "name": "raw/test_img/index.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Overview",
+              "lines": "1-2",
+              "summary": "文档首句介绍图片引用功能：Some text with an image."
+            },
+            {
+              "heading": "§ Section",
+              "lines": "4-5",
+              "summary": "示例章节，包含简单文本内容 Content."
+            }
+          ]
+        },
+        {
+          "name": "raw/test_new/index.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ Overview",
+              "lines": "6-7",
+              "summary": "文档包含图片引用与概述文本 Some overview text."
+            },
+            {
+              "heading": "§ Details",
+              "lines": "9-10",
+              "summary": "Details 章节包含 More details here."
+            }
+          ]
+        }
+      ]
     }
   ]
 }

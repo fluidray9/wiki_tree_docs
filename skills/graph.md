@@ -51,4 +51,4 @@ If the script fails (API error, network issue, etc.), execute manually:
 - Script fails → Try manual execution
 - Knowledge base doesn't exist → "Knowledge base not found: <name>"
 - Wiki is empty → "Nothing to graph — the wiki is empty."
-- API error during inference → Retry with `--no-infer` to skip semantic inference
+- API error (system error 1033) during inference → Retry with `--no-infer` to skip semantic relationship inference and complete the graph build

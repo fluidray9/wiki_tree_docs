@@ -30,16 +30,24 @@ For Claude Code usage, no API key is needed — the agent handles it natively.
 
 | Command | What to say |
 |---|---|
-| `/tree-init` | `init my_kb` |
+| `/tree-init` | `init my_kb --alias "My KB"` |
 | `/tree-list` | `list all knowledge bases` |
 | `/tree-use` | `use my_kb` |
 | `/tree-ingest` | `ingest raw/my-article.md --kb my_kb` |
-| `/tree-query` | `query: what are the main themes? --kb my_kb` |
-| `/wiki-query` | `query: how does X work? --kb my_kb` |
-| `/tree-lint` | `lint the tree index --kb my_kb` |
+| `/tree-query` | `query the tree about: what are the main themes? --kb my_kb` |
+| `/wiki-query` | `query the wiki about: how does X work? --kb my_kb` |
+| `/tree-lint` | `lint the knowledge base --kb my_kb` |
 | `/tree-graph` | `build the knowledge graph --kb my_kb` |
 
 Or describe in plain English. Claude Code reads this file automatically.
+
+## Execution Model
+
+When executing slash commands or workflows:
+1. **Try the Python script first** — scripts in `tools/` are the primary execution layer
+2. **If the script fails** (API error, network issue, etc.) — fall back to the manual steps described in the corresponding `skills/*.md` file
+
+Each skill file (in `skills/`) describes both the script command to run and the manual fallback process.
 
 ---
 

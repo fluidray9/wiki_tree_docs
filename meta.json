@@ -1,6 +1,7 @@
 {
   "alias_map": {
-    "ai_research": ""
+    "ai_research": "",
+    "test_kb": "Test Knowledge Base"
   },
   "default": "ai_research"
 }

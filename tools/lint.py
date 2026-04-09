@@ -3,8 +3,8 @@
 Lint the LLM Wiki for health issues.
 
 Usage:
-    python tools/lint.py
-    python tools/lint.py --save          # save lint report to wiki/lint-report.md
+    python tools/lint.py --kb <name>
+    python tools/lint.py --kb <name> --save  # save lint report
 
 Checks:
   - Orphan pages (no inbound wikilinks from other pages)
@@ -12,11 +12,13 @@ Checks:
   - Missing entity pages (entities mentioned in 3+ pages but no page)
   - Contradictions between pages
   - Data gaps and suggested new sources
+  - Tree structure issues (isolated topics, broken leaf references)
 """
 
 import re
 import sys
 import os
+import json
 import argparse
 from pathlib import Path
 from collections import defaultdict
@@ -25,9 +27,37 @@ from datetime import date
 import anthropic
 
 REPO_ROOT = Path(__file__).parent.parent
-WIKI_DIR = REPO_ROOT / "wiki"
-LOG_FILE = WIKI_DIR / "log.md"
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
+META_FILE = REPO_ROOT / "meta.json"
+
+
+def resolve_kb_path(kb_name: str | None) -> tuple[Path, Path]:
+    """解析知识库路径，返回 (kb_path, wiki_dir)"""
+    if META_FILE.exists():
+        meta = json.loads(META_FILE.read_text())
+    else:
+        meta = {"default": None}
+
+    if kb_name is None:
+        kb_name = meta.get("default")
+
+    if not kb_name:
+        print("Error: no knowledge base specified and no default set.")
+        print("Use --kb <name> or run: python -m tools.tree-use <name>")
+        sys.exit(1)
+
+    kb_path = REPO_ROOT / "knowledge_bases" / kb_name
+    if not kb_path.exists():
+        print(f"Error: knowledge base not found: {kb_name}")
+        sys.exit(1)
+
+    wiki_dir = kb_path / "wiki"
+    return kb_path, wiki_dir
+
+
+WIKI_DIR = None  # set after parsing args
+LOG_FILE = None  # set after parsing args
+TREE_FILE = None  # set after parsing args
 
 
 def read_file(path: Path) -> str:
@@ -86,7 +116,54 @@ def find_missing_entities(pages: list[Path]) -> list[str]:
     return [name for name, count in mention_counts.items() if count >= 3]
 
 
-def run_lint():
+def find_tree_issues(kb_path: Path) -> list[str]:
+    """Check tree structure for issues."""
+    issues = []
+    tree_file = kb_path / "tree" / "index.json"
+
+    if not tree_file.exists():
+        issues.append("tree/index.json does not exist")
+        return issues
+
+    try:
+        tree_data = json.loads(tree_file.read_text())
+    except json.JSONDecodeError:
+        issues.append("tree/index.json is not valid JSON")
+        return issues
+
+    raw_dir = kb_path / "raw"
+
+    def check_node(node: dict, path: str = "root"):
+        name = node.get("name", "?")
+        node_type = node.get("type", "topic")
+        children = node.get("children", [])
+
+        if node_type == "leaf":
+            # Check if source file exists
+            source_path = kb_path / node.get("name", "")
+            if not source_path.exists():
+                issues.append(f"Leaf node references non-existent file: {node.get('name')}")
+        elif node_type == "topic":
+            # Check for isolated topic nodes
+            if not children and path != "root":
+                issues.append(f"Orphan topic node: {name} (no children)")
+
+        for child in children:
+            check_node(child, f"{path}/{name}")
+
+    if "children" in tree_data:
+        for child in tree_data["children"]:
+            check_node(child, "root")
+
+    return issues
+
+
+def run_lint(kb_path: Path, wiki_dir: Path):
+    global WIKI_DIR, LOG_FILE, TREE_FILE
+    WIKI_DIR = wiki_dir
+    LOG_FILE = wiki_dir / "log.md"
+    TREE_FILE = kb_path / "tree" / "index.json"
+
     pages = all_wiki_pages()
     today = date.today().isoformat()
 
@@ -100,10 +177,12 @@ def run_lint():
     orphans = find_orphans(pages)
     broken = find_broken_links(pages)
     missing_entities = find_missing_entities(pages)
+    tree_issues = find_tree_issues(kb_path)
 
     print(f"  orphans: {len(orphans)}")
     print(f"  broken links: {len(broken)}")
     print(f"  missing entity pages: {len(missing_entities)}")
+    print(f"  tree issues: {len(tree_issues)}")
 
     # Build context for semantic checks (contradictions, gaps)
     # Use a sample of pages to stay within context limits
@@ -143,7 +222,7 @@ Be specific — name the exact pages and claims involved.
         }]
     )
 
-    semantic_report = response.content[0].text
+    semantic_report = extract_text_from_content(response.content)
 
     # Compose full report
     report_lines = [
@@ -173,7 +252,13 @@ Be specific — name the exact pages and claims involved.
             report_lines.append(f"- `[[{name}]]`")
         report_lines.append("")
 
-    if not orphans and not broken and not missing_entities:
+    if tree_issues:
+        report_lines.append("### Tree Structure Issues")
+        for issue in tree_issues:
+            report_lines.append(f"- {issue}")
+        report_lines.append("")
+
+    if not orphans and not broken and not missing_entities and not tree_issues:
         report_lines.append("No structural issues found.")
         report_lines.append("")
 
@@ -186,6 +271,17 @@ Be specific — name the exact pages and claims involved.
     return report
 
 
+def extract_text_from_content(content_blocks: list) -> str:
+    """Extract text from API response content, handling ThinkingBlocks."""
+    texts = []
+    for block in content_blocks:
+        if hasattr(block, 'text'):
+            texts.append(block.text)
+        elif hasattr(block, 'thinking'):
+            pass  # Skip thinking blocks
+    return "\n".join(texts)
+
+
 def append_log(entry: str):
     existing = read_file(LOG_FILE)
     LOG_FILE.write_text(entry.strip() + "\n\n" + existing, encoding="utf-8")
@@ -194,12 +290,14 @@ def append_log(entry: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lint the LLM Wiki")
     parser.add_argument("--save", action="store_true", help="Save lint report to wiki/lint-report.md")
+    parser.add_argument("--kb", type=str, default=None, help="Knowledge base name")
     args = parser.parse_args()
 
-    report = run_lint()
+    kb_path, wiki_dir = resolve_kb_path(args.kb)
+    report = run_lint(kb_path, wiki_dir)
 
     if args.save and report:
-        report_path = WIKI_DIR / "lint-report.md"
+        report_path = wiki_dir / "lint-report.md"
         report_path.write_text(report, encoding="utf-8")
         print(f"\nSaved: {report_path.relative_to(REPO_ROOT)}")
 

@@ -5,20 +5,34 @@
     {
       "name": "AI",
       "description": "人工智能",
-      "keywords": ["artificial intelligence", "AI", "machine learning"],
+      "keywords": [
+        "artificial intelligence",
+        "AI",
+        "machine learning"
+      ],
       "type": "topic",
       "children": [
         {
           "name": "LLM",
           "description": "大语言模型",
-          "keywords": ["language model", "LLM", "transformer", "GPT"],
+          "keywords": [
+            "language model",
+            "LLM",
+            "transformer",
+            "GPT"
+          ],
           "type": "topic",
           "children": [
             {
               "name": "RAG",
               "description": "检索增强生成",
               "type": "topic",
-              "keywords": ["Retrieval-Augmented Generation", "RAG", "知识检索", "检索增强"],
+              "keywords": [
+                "Retrieval-Augmented Generation",
+                "RAG",
+                "知识检索",
+                "检索增强"
+              ],
               "children": [
                 {
                   "name": "raw/rag-intro.md",
@@ -45,6 +59,44 @@
                       "summary": "RAG 优点：可解释性强、实时性好、易于更新知识库；缺点：依赖检索质量、延迟较高"
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Deep Learning",
+          "description": "Transformer 是一种基于自注意力机制的神经网络架构，由 Vaswani 等人于 2017 年提出",
+          "keywords": [
+            "transformer",
+            "self-attention",
+            "neural network",
+            "deep learning",
+            "vaswani",
+            "attention",
+            "bert",
+            "gpt"
+          ],
+          "type": "topic",
+          "children": [
+            {
+              "name": "raw/ai_research.md",
+              "type": "leaf",
+              "sections": [
+                {
+                  "heading": "§ 概述",
+                  "lines": "1-4",
+                  "summary": "Transformer 是一种基于自注意力机制的神经网络架构，由 Vaswani 等人在 2017 年提出"
+                },
+                {
+                  "heading": "§ 核心组件",
+                  "lines": "5-9",
+                  "summary": "多头注意力机制并行计算多个注意力头，前馈神经网络独立处理每个位置，位置编码注入序列位置信息"
+                },
+                {
+                  "heading": "§ 应用",
+                  "lines": "10-14",
+                  "summary": "Transformer 及其变体广泛应用于 NLP（BERT、GPT）、视觉（ViT、DETR）和多模态（CLIP、GPT-4V）领域"
                 }
               ]
             }

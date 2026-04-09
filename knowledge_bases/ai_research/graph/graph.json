@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    {
+      "id": "overview",
+      "label": "overview",
+      "type": "unknown",
+      "color": "#E91E63",
+      "path": "knowledge_bases/ai_research/wiki/overview.md",
+      "group": 0
+    },
+    {
+      "id": "sources/rag-intro",
+      "label": "RAG \u4ecb\u7ecd",
+      "type": "source",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/sources/rag-intro.md",
+      "group": 1
+    },
+    {
+      "id": "concepts/RAG",
+      "label": "RAG",
+      "type": "concept",
+      "color": "#00BCD4",
+      "path": "knowledge_bases/ai_research/wiki/concepts/RAG.md",
+      "group": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "sources/rag-intro",
+      "to": "concepts/RAG",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    },
+    {
+      "from": "concepts/RAG",
+      "to": "sources/rag-intro",
+      "type": "EXTRACTED",
+      "color": "#555555",
+      "confidence": 1.0
+    }
+  ],
+  "built": "2026-04-09"
+}

@@ -3,8 +3,7 @@
 Ingest a source document into the LLM Wiki.
 
 Usage:
-    python tools/ingest.py <path-to-source>
-    python tools/ingest.py raw/articles/my-article.md
+    python tools/ingest.py <path-to-source> --kb <name>
 
 The LLM reads the source, extracts knowledge, and updates the wiki:
   - Creates wiki/sources/<slug>.md
@@ -13,6 +12,7 @@ The LLM reads the source, extracts knowledge, and updates the wiki:
   - Creates/updates entity and concept pages
   - Appends to wiki/log.md
   - Flags contradictions
+  - Updates tree/index.json with new tree nodes
 """
 
 import os
@@ -20,17 +20,42 @@ import sys
 import json
 import hashlib
 import re
+import shutil
+import argparse
 from pathlib import Path
 from datetime import date
 
 import anthropic
 
 REPO_ROOT = Path(__file__).parent.parent
-WIKI_DIR = REPO_ROOT / "wiki"
-LOG_FILE = WIKI_DIR / "log.md"
-INDEX_FILE = WIKI_DIR / "index.md"
-OVERVIEW_FILE = WIKI_DIR / "overview.md"
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
+META_FILE = REPO_ROOT / "meta.json"
+
+
+def resolve_kb_path(kb_name: str | None) -> tuple[Path, Path, Path, Path]:
+    """解析知识库路径，返回 (kb_path, wiki_dir, raw_dir, tree_file)"""
+    if META_FILE.exists():
+        meta = json.loads(META_FILE.read_text())
+    else:
+        meta = {"default": None}
+
+    if kb_name is None:
+        kb_name = meta.get("default")
+
+    if not kb_name:
+        print("Error: no knowledge base specified and no default set.")
+        print("Use --kb <name>")
+        sys.exit(1)
+
+    kb_path = REPO_ROOT / "knowledge_bases" / kb_name
+    if not kb_path.exists():
+        print(f"Error: knowledge base not found: {kb_name}")
+        sys.exit(1)
+
+    wiki_dir = kb_path / "wiki"
+    raw_dir = kb_path / "raw"
+    tree_file = kb_path / "tree" / "index.json"
+    return kb_path, wiki_dir, raw_dir, tree_file
 
 
 def sha256(text: str) -> str:
@@ -73,6 +98,73 @@ def parse_json_from_response(text: str) -> dict:
     return json.loads(match.group())
 
 
+def update_tree_index(tree_node: dict, kb_path: Path):
+    """Update tree/index.json with new tree nodes."""
+    tree_file = kb_path / "tree" / "index.json"
+
+    if tree_file.exists():
+        try:
+            tree_data = json.loads(tree_file.read_text())
+        except json.JSONDecodeError:
+            tree_data = {"name": "root", "description": "Knowledge base root", "children": []}
+    else:
+        tree_data = {"name": "root", "description": "Knowledge base root", "children": []}
+
+    topic_path = tree_node.get("topic_path", [])
+    sections = tree_node.get("sections", [])
+
+    # Navigate or create the topic path
+    current_level = tree_data["children"]
+    for topic_name in topic_path:
+        # Find or create this topic
+        found = None
+        for child in current_level:
+            if child.get("name") == topic_name and child.get("type") == "topic":
+                found = child
+                break
+        if found:
+            current_level = found["children"]
+        else:
+            # Create new topic node
+            new_topic = {
+                "name": topic_name,
+                "description": tree_node.get("description", ""),
+                "keywords": tree_node.get("keywords", []),
+                "type": "topic",
+                "children": []
+            }
+            current_level.append(new_topic)
+            current_level = new_topic["children"]
+
+    # Add the leaf node for this document
+    slug = tree_node.get("slug", "")
+    # Use the raw path relative to kb
+    raw_path = f"raw/{slug}.md" if slug else f"raw/{kb_path.name}.md"
+
+    leaf_node = {
+        "name": raw_path,
+        "type": "leaf",
+        "sections": sections
+    }
+    current_level.append(leaf_node)
+
+    # Write back
+    tree_file.parent.mkdir(parents=True, exist_ok=True)
+    tree_file.write_text(json.dumps(tree_data, indent=2, ensure_ascii=False))
+    print(f"  updated tree: added leaf under {'/'.join(topic_path)}")
+
+
+def parse_json_from_response(text: str) -> dict:
+    # Strip markdown code fences if present
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    text = re.sub(r"\s*```$", "", text.strip())
+    # Find the outermost JSON object
+    match = re.search(r"\{[\s\S]*\}", text)
+    if not match:
+        raise ValueError("No JSON object found in response")
+    return json.loads(match.group())
+
+
 def update_index(new_entry: str, section: str = "Sources"):
     content = read_file(INDEX_FILE)
     if not content:
@@ -90,11 +182,37 @@ def append_log(entry: str):
     write_file(LOG_FILE, entry.strip() + "\n\n" + existing)
 
 
-def ingest(source_path: str):
+def extract_text_from_content(content_blocks: list) -> str:
+    """Extract text from API response content, handling ThinkingBlocks."""
+    texts = []
+    for block in content_blocks:
+        if hasattr(block, 'text'):
+            texts.append(block.text)
+        elif hasattr(block, 'thinking'):
+            pass  # Skip thinking blocks
+    return "\n".join(texts)
+
+
+def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_file: Path):
+    global WIKI_DIR, RAW_DIR, TREE_FILE, INDEX_FILE, OVERVIEW_FILE, LOG_FILE
+    WIKI_DIR = wiki_dir
+    RAW_DIR = raw_dir
+    TREE_FILE = tree_file
+    INDEX_FILE = wiki_dir / "index.md"
+    OVERVIEW_FILE = wiki_dir / "overview.md"
+    LOG_FILE = wiki_dir / "log.md"
+
     source = Path(source_path)
     if not source.exists():
         print(f"Error: file not found: {source_path}")
         sys.exit(1)
+
+    # Copy source to raw/ if it's not already there
+    dest_in_raw = raw_dir / source.name
+    if not dest_in_raw.exists() or dest_in_raw.read_text() != source.read_text():
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, dest_in_raw)
+        print(f"  copied to: {dest_in_raw.relative_to(REPO_ROOT)}")
 
     source_content = source.read_text(encoding="utf-8")
     source_hash = sha256(source_content)
@@ -139,7 +257,19 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
     {{"path": "concepts/ConceptName.md", "content": "full markdown content"}}
   ],
   "contradictions": ["describe any contradiction with existing wiki content, or empty list"],
-  "log_entry": "## [{today}] ingest | <title>\\n\\nAdded source. Key claims: ..."
+  "log_entry": "## [{today}] ingest | <title>\\n\\nAdded source. Key claims: ...",
+  "tree_node": {{
+    "topic_path": ["ParentTopic1", "ParentTopic2"],
+    "description": "Brief description of what this document is about",
+    "keywords": ["keyword1", "keyword2", "keyword3"],
+    "sections": [
+      {{
+        "heading": "§ Section Title",
+        "lines": "start-end",
+        "summary": "Brief summary of this section's content"
+      }}
+    ]
+  }}
 }}
 """
 
@@ -150,7 +280,7 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
         messages=[{"role": "user", "content": prompt}],
     )
 
-    raw = response.content[0].text
+    raw = extract_text_from_content(response.content)
     try:
         data = parse_json_from_response(raw)
     except (ValueError, json.JSONDecodeError) as e:
@@ -188,11 +318,19 @@ Return ONLY a valid JSON object with these fields (no markdown fences, no prose 
         for c in contradictions:
             print(f"     - {c}")
 
+    # Update tree index
+    tree_node = data.get("tree_node")
+    if tree_node:
+        update_tree_index(tree_node, kb_path)
+
     print(f"\nDone. Ingested: {data['title']}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python tools/ingest.py <path-to-source>")
-        sys.exit(1)
-    ingest(sys.argv[1])
+    parser = argparse.ArgumentParser(description="Ingest a source document")
+    parser.add_argument("source", help="Path to source document")
+    parser.add_argument("--kb", type=str, required=True, help="Knowledge base name")
+    args = parser.parse_args()
+
+    kb_path, wiki_dir, raw_dir, tree_file = resolve_kb_path(args.kb)
+    ingest(args.source, kb_path, wiki_dir, raw_dir, tree_file)

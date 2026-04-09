@@ -3,11 +3,12 @@
 Query the LLM Wiki.
 
 Usage:
-    python tools/query.py "What are the main themes across all sources?"
-    python tools/query.py "How does ConceptA relate to ConceptB?" --save
-    python tools/query.py "Summarize everything about EntityName" --save synthesis/my-analysis.md
+    python tools/query.py "What are the main themes?" --kb <name>
+    python tools/query.py "How does ConceptA relate to ConceptB?" --kb <name> --save
+    python tools/query.py "Summarize everything about EntityName" --kb <name> --save synthesis/my-analysis.md
 
 Flags:
+    --kb <name>         Knowledge base name (required)
     --save              Save the answer back into the wiki (prompts for filename)
     --save <path>       Save to a specific wiki path
 """
@@ -23,10 +24,37 @@ from datetime import date
 import anthropic
 
 REPO_ROOT = Path(__file__).parent.parent
-WIKI_DIR = REPO_ROOT / "wiki"
-INDEX_FILE = WIKI_DIR / "index.md"
-LOG_FILE = WIKI_DIR / "log.md"
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
+META_FILE = REPO_ROOT / "meta.json"
+
+
+def resolve_kb_path(kb_name: str | None) -> tuple[Path, Path, Path]:
+    """解析知识库路径，返回 (kb_path, wiki_dir, index_file)"""
+    if META_FILE.exists():
+        meta = json.loads(META_FILE.read_text())
+    else:
+        meta = {"default": None}
+
+    if kb_name is None:
+        kb_name = meta.get("default")
+
+    if not kb_name:
+        print("Error: no knowledge base specified and no default set.")
+        print("Use --kb <name>")
+        sys.exit(1)
+
+    kb_path = REPO_ROOT / "knowledge_bases" / kb_name
+    if not kb_path.exists():
+        print(f"Error: knowledge base not found: {kb_name}")
+        sys.exit(1)
+
+    wiki_dir = kb_path / "wiki"
+    return kb_path, wiki_dir, wiki_dir / "index.md"
+
+
+WIKI_DIR = None  # set after parsing args
+INDEX_FILE = None  # set after parsing args
+LOG_FILE = None  # set after parsing args
 
 
 def read_file(path: Path) -> str:
@@ -37,6 +65,17 @@ def write_file(path: Path, content: str):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     print(f"  saved: {path.relative_to(REPO_ROOT)}")
+
+
+def extract_text_from_content(content_blocks: list) -> str:
+    """Extract text from API response content, handling ThinkingBlocks."""
+    texts = []
+    for block in content_blocks:
+        if hasattr(block, 'text'):
+            texts.append(block.text)
+        elif hasattr(block, 'thinking'):
+            pass  # Skip thinking blocks
+    return "\n".join(texts)
 
 
 def find_relevant_pages(question: str, index_content: str) -> list[Path]:
@@ -63,7 +102,12 @@ def append_log(entry: str):
     LOG_FILE.write_text(entry.strip() + "\n\n" + existing, encoding="utf-8")
 
 
-def query(question: str, save_path: str | None = None):
+def query(question: str, kb_path: Path, wiki_dir: Path, save_path: str | None = None):
+    global WIKI_DIR, INDEX_FILE, LOG_FILE
+    WIKI_DIR = wiki_dir
+    INDEX_FILE = wiki_dir / "index.md"
+    LOG_FILE = wiki_dir / "log.md"
+
     today = date.today().isoformat()
     client = anthropic.Anthropic(
         base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
@@ -90,7 +134,7 @@ def query(question: str, save_path: str | None = None):
                 "content": f"Given this wiki index:\n\n{index_content}\n\nWhich pages are most relevant to answering: \"{question}\"\n\nReturn ONLY a JSON array of relative file paths (as listed in the index), e.g. [\"sources/foo.md\", \"concepts/Bar.md\"]. Maximum 10 pages."
             }]
         )
-        raw = selection_response.content[0].text.strip()
+        raw = extract_text_from_content(selection_response.content).strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
         try:
@@ -132,7 +176,7 @@ Write a well-structured markdown answer with headers, bullets, and [[wikilink]] 
         }]
     )
 
-    answer = response.content[0].text
+    answer = extract_text_from_content(response.content)
     print("\n" + "=" * 60)
     print(answer)
     print("=" * 60)
@@ -175,7 +219,10 @@ last_updated: {today}
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Query the LLM Wiki")
     parser.add_argument("question", help="Question to ask the wiki")
+    parser.add_argument("--kb", type=str, required=True, help="Knowledge base name")
     parser.add_argument("--save", nargs="?", const="", default=None,
                         help="Save answer to wiki (optionally specify path)")
     args = parser.parse_args()
-    query(args.question, args.save)
+
+    kb_path, wiki_dir, _ = resolve_kb_path(args.kb)
+    query(args.question, kb_path, wiki_dir, args.save)

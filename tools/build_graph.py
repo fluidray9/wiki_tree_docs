@@ -3,13 +3,13 @@
 Build the knowledge graph from the wiki.
 
 Usage:
-    python tools/build_graph.py               # full rebuild
-    python tools/build_graph.py --no-infer    # skip semantic inference (faster)
-    python tools/build_graph.py --open        # open graph.html in browser after build
+    python tools/build_graph.py --kb <name>          # full rebuild
+    python tools/build_graph.py --kb <name> --no-infer  # skip semantic inference
+    python tools/build_graph.py --kb <name> --open     # open graph.html after build
 
 Outputs:
-    graph/graph.json    — node/edge data (cached by SHA256)
-    graph/graph.html    — interactive vis.js visualization
+    knowledge_bases/<kb>/graph/graph.json    — node/edge data (cached by SHA256)
+    knowledge_bases/<kb>/graph/graph.html    — interactive vis.js visualization
 
 Edge types:
     EXTRACTED   — explicit [[wikilink]] in a page
@@ -37,13 +37,41 @@ except ImportError:
     print("Warning: networkx not installed. Community detection disabled. Run: pip install networkx")
 
 REPO_ROOT = Path(__file__).parent.parent
-WIKI_DIR = REPO_ROOT / "wiki"
-GRAPH_DIR = REPO_ROOT / "graph"
-GRAPH_JSON = GRAPH_DIR / "graph.json"
-GRAPH_HTML = GRAPH_DIR / "graph.html"
-CACHE_FILE = GRAPH_DIR / ".cache.json"
-LOG_FILE = WIKI_DIR / "log.md"
 SCHEMA_FILE = REPO_ROOT / "CLAUDE.md"
+META_FILE = REPO_ROOT / "meta.json"
+
+
+def resolve_kb_path(kb_name: str | None) -> tuple[Path, Path, Path]:
+    """解析知识库路径，返回 (kb_path, wiki_dir, graph_dir)"""
+    if META_FILE.exists():
+        meta = json.loads(META_FILE.read_text())
+    else:
+        meta = {"default": None}
+
+    if kb_name is None:
+        kb_name = meta.get("default")
+
+    if not kb_name:
+        print("Error: no knowledge base specified and no default set.")
+        print("Use --kb <name>")
+        sys.exit(1)
+
+    kb_path = REPO_ROOT / "knowledge_bases" / kb_name
+    if not kb_path.exists():
+        print(f"Error: knowledge base not found: {kb_name}")
+        sys.exit(1)
+
+    wiki_dir = kb_path / "wiki"
+    graph_dir = kb_path / "graph"
+    return kb_path, wiki_dir, graph_dir
+
+
+WIKI_DIR = None  # set after parsing args
+GRAPH_DIR = None  # set after parsing args
+GRAPH_JSON = None  # set after parsing args
+GRAPH_HTML = None  # set after parsing args
+CACHE_FILE = None  # set after parsing args
+LOG_FILE = None  # set after parsing args
 
 # Node type → color mapping
 TYPE_COLORS = {
@@ -207,7 +235,7 @@ Rules:
             }]
         )
 
-        raw = response.content[0].text.strip()
+        raw = extract_text_from_content(response.content).strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
 
@@ -360,13 +388,32 @@ function searchNodes(q) {{
 </html>"""
 
 
+def extract_text_from_content(content_blocks: list) -> str:
+    """Extract text from API response content, handling ThinkingBlocks."""
+    texts = []
+    for block in content_blocks:
+        if hasattr(block, 'text'):
+            texts.append(block.text)
+        elif hasattr(block, 'thinking'):
+            pass  # Skip thinking blocks
+    return "\n".join(texts)
+
+
 def append_log(entry: str):
     log_path = WIKI_DIR / "log.md"
     existing = read_file(log_path)
     log_path.write_text(entry.strip() + "\n\n" + existing, encoding="utf-8")
 
 
-def build_graph(infer: bool = True, open_browser: bool = False):
+def build_graph(kb_path: Path, wiki_dir: Path, graph_dir: Path, infer: bool = True, open_browser: bool = False):
+    global WIKI_DIR, GRAPH_DIR, GRAPH_JSON, GRAPH_HTML, CACHE_FILE, LOG_FILE
+    WIKI_DIR = wiki_dir
+    GRAPH_DIR = graph_dir
+    GRAPH_JSON = graph_dir / "graph.json"
+    GRAPH_HTML = graph_dir / "graph.html"
+    CACHE_FILE = graph_dir / ".cache.json"
+    LOG_FILE = wiki_dir / "log.md"
+
     pages = all_wiki_pages()
     today = date.today().isoformat()
 
@@ -420,7 +467,10 @@ def build_graph(infer: bool = True, open_browser: bool = False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build LLM Wiki knowledge graph")
+    parser.add_argument("--kb", type=str, required=True, help="Knowledge base name")
     parser.add_argument("--no-infer", action="store_true", help="Skip semantic inference (faster)")
     parser.add_argument("--open", action="store_true", help="Open graph.html in browser")
     args = parser.parse_args()
-    build_graph(infer=not args.no_infer, open_browser=args.open)
+
+    kb_path, wiki_dir, graph_dir = resolve_kb_path(args.kb)
+    build_graph(kb_path, wiki_dir, graph_dir, infer=not args.no_infer, open_browser=args.open)

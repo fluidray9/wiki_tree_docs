@@ -1,3 +1,11 @@
+## [2026-04-09] ingest | Research Survey
+
+Added source from survey_test.md. 56,000-line test document: 9-section academic survey block repeated ~1,931 times. Sections: Abstract, Introduction, Related Work, Methodology, Experimental Setup, Results, Discussion, Conclusion, References. All content is placeholder text. No image references. Research-Survey topic added as new top-level node in tree.
+
+## [2026-04-09] ingest | Research Survey
+
+Added source from survey_test.md. 56,000-line test document: 9-section academic survey block repeated ~1,931 times. Sections: Abstract, Introduction, Related Work, Methodology, Experimental Setup, Results, Discussion, Conclusion, References. All content is placeholder text. No image references. Research-Survey topic added as new top-level node in tree.
+
 ## [2026-04-09] graph | Knowledge graph rebuilt
 
 5 nodes, 4 edges (4 extracted, 0 inferred).

@@ -33,6 +33,48 @@
       ]
     },
     {
+      "name": "Research-Survey",
+      "description": "Academic research survey with standard 9-section structure (Abstract through References)",
+      "keywords": [
+        "research survey",
+        "academic paper",
+        "abstract",
+        "introduction",
+        "related work",
+        "methodology",
+        "experimental setup",
+        "results",
+        "discussion",
+        "conclusion",
+        "references"
+      ],
+      "type": "topic",
+      "children": [
+        {
+          "name": "raw/survey_test.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ All Sections (repeated ~1,931×)",
+              "lines": "1-56000",
+              "summary": "56,000-line test document: 9-section academic survey (Abstract, Introduction, Related Work, Methodology, Experimental Setup, Results, Discussion, Conclusion, References) repeated ~1,931 times. Each section contains only a single line of placeholder text. No substantive content, no image references."
+            }
+          ]
+        },
+        {
+          "name": "raw/test_kb.md",
+          "type": "leaf",
+          "sections": [
+            {
+              "heading": "§ All Sections (repeated ~1,931×)",
+              "lines": "1-56000",
+              "summary": "56,000-line test document: 9-section academic survey (Abstract, Introduction, Related Work, Methodology, Experimental Setup, Results, Discussion, Conclusion, References) repeated ~1,931 times. Each section contains only a single line of placeholder text. No substantive content, no image references."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Testing",
       "description": "Test paper with an image and Section 1",
       "keywords": [

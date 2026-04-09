@@ -8,5 +8,10 @@
     "hash": "71ef4723ffb8ff59",
     "slug": "new-test-doc",
     "title": "Research Notes"
+  },
+  "survey_test.md": {
+    "hash": "e04da75ef683320f",
+    "slug": "research-survey",
+    "title": "Research Survey"
   }
 }

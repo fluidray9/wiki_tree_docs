@@ -41,6 +41,24 @@ For Claude Code usage, no API key is needed — the agent handles it natively.
 
 Or describe in plain English. Claude Code reads this file automatically.
 
+## Available Scripts
+
+All scripts run from repo root. Use `--kb <name>` to specify the knowledge base.
+
+| Script | Description |
+|--------|-------------|
+| `python tools/init.py <name> --alias "..."` | Create a new knowledge base |
+| `python tools/list.py` | List all knowledge bases |
+| `python tools/use.py <name>` | Set default knowledge base |
+| `python tools/use.py --show` | Show current default |
+| `python tools/ingest.py <source> --kb <name>` | Ingest a document |
+| `python tools/query.py "<question>" --kb <name>` | Query the wiki |
+| `python tools/tree_query.py "<question>" --kb <name>` | Query the tree index |
+| `python tools/lint.py --kb <name>` | Check for issues |
+| `python tools/build_graph.py --kb <name>` | Build knowledge graph |
+
+Or describe in plain English. Claude Code reads this file automatically.
+
 ## Execution Model
 
 When executing slash commands or workflows:

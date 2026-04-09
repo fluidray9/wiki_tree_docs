@@ -1,9 +1,7 @@
 # Python cache
 __pycache__/
-test_readmes/
 *.py[cod]
 *$py.class
-knowledge_bases/
 *.so
 .Python
 *.egg-info/
@@ -14,6 +12,16 @@ build/
 venv/
 .venv/
 env/
+
+# Test knowledge bases (generated/test content)
+knowledge_bases/test_kb/
+knowledge_bases/test_v2/
+test_source.md
+test_readmes/
+
+# Test files at root
+*.test.md
+*.tmp
 
 # IDE
 .vscode/

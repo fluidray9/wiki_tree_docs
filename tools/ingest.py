@@ -308,18 +308,13 @@ def mark_ingested(kb_path: Path, manifest_key: str, source_hash: str, slug: str,
 
 
 def build_wiki_context() -> str:
+    """Build wiki context for prompt. Only includes index and overview (no recent sources to avoid path confusion)."""
     parts = []
     if INDEX_FILE.exists():
-        parts.append(f"## wiki/index.md\n{read_file(INDEX_FILE)}")
+        parts.append(f"## Wiki Index\n{read_file(INDEX_FILE)}")
     if OVERVIEW_FILE.exists():
-        parts.append(f"## wiki/overview.md\n{read_file(OVERVIEW_FILE)}")
-    # Include recent source pages for contradiction checking (reduced from 5 to 2)
-    sources_dir = WIKI_DIR / "sources"
-    if sources_dir.exists():
-        recent = sorted(sources_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:2]
-        for p in recent:
-            parts.append(f"## {p.relative_to(REPO_ROOT)}\n{p.read_text()}")
-    return "\n\n---\n\n".join(parts)
+        parts.append(f"## Wiki Overview\n{read_file(OVERVIEW_FILE)}")
+    return "\n\n".join(parts)
 
 
 def update_tree_index(tree_node: dict, kb_path: Path, raw_path: str | None = None):
@@ -536,7 +531,7 @@ def ingest(source_path: str, kb_path: Path, wiki_dir: Path, raw_dir: Path, tree_
 ## Wiki Format
 {INGEST_FORMAT}
 
-Current wiki state (index + recent pages):
+Current wiki state:
 {wiki_context if wiki_context else "(wiki is empty — this is the first source)"}
 
 New source to ingest (file: {source.relative_to(REPO_ROOT) if source.is_relative_to(REPO_ROOT) else source.name}):
@@ -547,6 +542,8 @@ New source to ingest (file: {source.relative_to(REPO_ROOT) if source.is_relative
 If the source contains image references (e.g. ![fig](path/to/image.png)), use the Read tool to view those images — Claude's Read tool handles images natively. The images are in the same directory tree you can access via --add-dir .
 
 Today's date: {today}
+
+IMPORTANT: In your JSON response, paths for entity_pages and concept_pages must be relative to the wiki/ directory (e.g., "entities/Microsoft.md", "concepts/IDE.md" — NOT full paths or paths starting with "wiki/").
 
 Return JSON with: title, slug, source_page, index_entry, overview_update, entity_pages, concept_pages, contradictions, log_entry, tree_node.
 """
@@ -567,7 +564,7 @@ The document's title is the overall title (use from first part for title/slug).
 ## Wiki Format
 {INGEST_FORMAT}
 
-Current wiki state (index + recent pages):
+Current wiki state:
 {wiki_context if wiki_context else "(wiki is empty — this is the first source)"}
 
 Source section (PART {i} of {len(split_sections)}):
@@ -581,6 +578,8 @@ Content:
 If this section contains image references (e.g. ![fig](path/to/image.png)), use the Read tool to view those images — Claude's Read tool handles images natively.
 
 Today's date: {today}
+
+IMPORTANT: In your JSON response, paths for entity_pages and concept_pages must be relative to the wiki/ directory (e.g., "entities/Microsoft.md", "concepts/IDE.md" — NOT full paths or paths starting with "wiki/").
 
 Return JSON with: title, slug, source_page, index_entry, overview_update, entity_pages, concept_pages, contradictions, log_entry, tree_node.
 """

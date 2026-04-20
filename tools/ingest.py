@@ -539,7 +539,13 @@ New source to ingest (file: {source.relative_to(REPO_ROOT) if source.is_relative
 {content_to_ingest}
 === SOURCE END ===
 
-If the source contains image references (e.g. ![fig](path/to/image.png)), use the Read tool to view those images — Claude's Read tool handles images natively. The images are in the same directory tree you can access via --add-dir .
+CRITICAL IMAGE HANDLING RULE:
+- You MUST use the Read tool to view EVERY image referenced in this document
+- For each image reference (e.g. ![图1](images/arch.png)), call Read tool with the image path BEFORE processing that section
+- The markdown already tells you which image is which (e.g., "如图1所示" + ![图1](images/arch.png))
+- After reading each image, incorporate its content into your analysis — describe diagrams, charts, key visual elements in Summary, Key Claims, or Key Quotes
+- The images are accessible via --add-dir . Resolve relative paths from the source document's directory.
+- DO NOT skip any images. If you fail to read an image, explicitly note "图片 [图号] 内容未读取" in your output.
 
 Today's date: {today}
 
@@ -575,7 +581,13 @@ Content:
 {sec['content'][:3000]}
 === SECTION END ===
 
-If this section contains image references (e.g. ![fig](path/to/image.png)), use the Read tool to view those images — Claude's Read tool handles images natively.
+CRITICAL IMAGE HANDLING RULE:
+- You MUST use the Read tool to view EVERY image referenced in this section
+- For each image reference (e.g. ![图1](images/arch.png)), call Read tool with the image path BEFORE processing that section
+- The markdown already tells you which image is which (e.g., "如图1所示" + ![图1](images/arch.png))
+- After reading each image, incorporate its content into your analysis — describe diagrams, charts, key visual elements in Summary, Key Claims, or Key Quotes
+- The images are accessible via --add-dir . Resolve relative paths from the source document's directory.
+- DO NOT skip any images. If you fail to read an image, explicitly note "图片 [图号] 内容未读取" in your output.
 
 Today's date: {today}
 
